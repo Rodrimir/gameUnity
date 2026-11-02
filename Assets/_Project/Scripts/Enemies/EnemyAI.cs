@@ -22,6 +22,7 @@ namespace GameYunit.Enemies
         private static readonly List<EnemyAI> ActiveOnServerList = new List<EnemyAI>();
 
         private CharacterController _controller;
+        private IEnemySteering _steering;
         private NetworkObject _target;
         private float _nextRetargetTime;
         private float _verticalSpeed;
@@ -58,7 +59,11 @@ namespace GameYunit.Enemies
             base.OnNetworkDespawn();
         }
 
-        private void Awake() => ResetSimulation();
+        private void Awake()
+        {
+            _steering = GetComponent<IEnemySteering>();
+            ResetSimulation();
+        }
 
         private void FixedUpdate()
         {
@@ -77,12 +82,22 @@ namespace GameYunit.Enemies
             Vector3 displacement = Vector3.zero;
             if (_target != null && _target.IsSpawned)
             {
-                Vector3 direction = _target.transform.position - transform.position;
-                direction.y = 0f;
-                float distance = direction.magnitude;
-                if (distance > 0.001f)
+                Vector3 toTarget = _target.transform.position - transform.position;
+                toTarget.y = 0f;
+                float distance = toTarget.magnitude;
+
+                // Navegação opcional (ex.: NavMeshSteering): só muda a direção; a parada continua medida até o alvo.
+                Vector3 direction = toTarget;
+                if (_steering != null)
                 {
-                    direction /= distance;
+                    direction = _steering.GetSteeringPoint(transform.position, _target.transform.position) - transform.position;
+                    direction.y = 0f;
+                }
+
+                float directionLength = direction.magnitude;
+                if (distance > 0.001f && directionLength > 0.001f)
+                {
+                    direction /= directionLength;
                     float step = Mathf.Min(_moveSpeed * deltaTime, Mathf.Max(0f, distance - _stoppingDistance));
                     displacement = direction * step;
                     transform.rotation = Quaternion.RotateTowards(transform.rotation,

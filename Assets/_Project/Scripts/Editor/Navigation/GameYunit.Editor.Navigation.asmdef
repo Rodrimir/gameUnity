@@ -1,0 +1,27 @@
+{
+    "name": "GameYunit.Editor.Navigation",
+    "rootNamespace": "GameYunit.Editor",
+    "references": [
+        "Unity.AI.Navigation",
+        "Unity.AI.Navigation.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "GAMEYUNIT_AI_NAVIGATION"
+    ],
+    "versionDefines": [
+        {
+            "name": "com.unity.ai.navigation",
+            "expression": "1.0.0",
+            "define": "GAMEYUNIT_AI_NAVIGATION"
+        }
+    ],
+    "noEngineReferences": false
+}

@@ -1,3 +1,4 @@
+using GameYunit.Core.Rendering;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -73,7 +74,10 @@ namespace GameYunit.Player
             Vector2 stick = _localAimAction.ReadValue<Vector2>();
             Mouse mouse = Mouse.current;
             Vector2 mousePosition = mouse != null ? mouse.position.ReadValue() : Vector2.zero;
-            bool mouseInView = mouse != null && _aimCamera != null && _aimCamera.pixelRect.Contains(mousePosition);
+            // Com a tela PSX a câmera renderiza em RenderTexture; converte a tela para os pixels da câmera.
+            Vector2 cameraPixel = default;
+            bool mouseInView = mouse != null &&
+                CameraViewportMapping.TryScreenToCameraPixel(_aimCamera, mousePosition, out cameraPixel);
             bool mouseMoved = mouseInView && _hasMousePosition &&
                 (mousePosition - _lastMousePosition).sqrMagnitude > 0.25f;
 
@@ -92,7 +96,7 @@ namespace GameYunit.Player
             }
 
             // Ao soltar o analógico, um mouse parado não pode roubar a mira.
-            return _usingGamepad || !mouseInView ? Vector2.zero : ReadMouseAim(mousePosition);
+            return _usingGamepad || !mouseInView ? Vector2.zero : ReadMouseAim(cameraPixel);
         }
 
         private Vector2 ReadStickAim(Vector2 stick)
