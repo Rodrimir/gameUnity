@@ -5,6 +5,7 @@ using GameYunit.Progression;
 using GameYunit.Rendering;
 using GameYunit.Gameplay;
 using GameYunit.Player;
+using GameYunit.Core.Rendering;
 using UnityEngine;
 
 namespace GameYunit.UI
@@ -140,7 +141,15 @@ namespace GameYunit.UI
             HealthComponent health = localPlayer.GetComponent<HealthComponent>();
             PlayerLevel level = localPlayer.GetComponent<PlayerLevel>();
             GameSessionController session = GameSessionController.Instance;
-            GUILayout.BeginArea(new Rect(12, 12, 270, 92), GUI.skin.box);
+            Camera camera = Camera.main;
+            Rect viewport = GetViewportGuiRect(camera);
+            float uiScale = _psx != null && _psx.RenderTexture != null
+                ? Mathf.Min(viewport.width / _psx.InternalResolution.x, viewport.height / _psx.InternalResolution.y)
+                : 1f;
+            uiScale = Mathf.Max(0.25f, uiScale);
+            Matrix4x4 previous = GUI.matrix;
+            GUI.matrix = previous * Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(uiScale, uiScale, 1f));
+            GUILayout.BeginArea(new Rect(viewport.x / uiScale + 12f, viewport.y / uiScale + 12f, 270, 92), GUI.skin.box);
             GUILayout.Label($"VIDA  {(health != null ? health.Health : 0):0}/{(health != null ? health.MaxHealth : 0):0}");
             GUILayout.Label($"NÍVEL  {(level != null ? level.Level : 1)}     XP  {(level != null ? level.Xp : 0)}/{(level != null ? level.XpToNextLevel : 0)}");
             float xp = level != null && level.XpToNextLevel > 0 ? (float)level.Xp / level.XpToNextLevel : 0f;
@@ -151,22 +160,30 @@ namespace GameYunit.UI
             GUI.color = Color.white;
             GUILayout.EndArea();
 
-            DrawWorldHealthBars();
+            DrawWorldHealthBars(camera, uiScale);
+            GUI.matrix = previous;
             if (session == null || session.PauseMode == 0) return;
             DrawPausePanel(session);
         }
 
-        private void DrawWorldHealthBars()
+        private Rect GetViewportGuiRect(Camera camera)
         {
-            Camera camera = Camera.main;
+            if (!CameraViewportMapping.TryGetScreenRect(camera, out Rect screenRect))
+                screenRect = new Rect(0f, 0f, Screen.width, Screen.height);
+            return new Rect(screenRect.x, Screen.height - screenRect.yMax, screenRect.width, screenRect.height);
+        }
+
+        private void DrawWorldHealthBars(Camera camera, float uiScale)
+        {
             if (camera == null) return;
             foreach (HealthComponent item in HealthComponent.Active)
             {
                 if (item == null || !item.IsSpawned || item.MaxHealth <= 0f || !item.IsAlive) continue;
-                Vector3 point = camera.WorldToScreenPoint(item.transform.position + Vector3.up * (item.IsPlayer ? 2.3f : 2f));
-                if (point.z <= 0f) continue;
+                Vector3 cameraPoint = camera.WorldToScreenPoint(item.transform.position + Vector3.up * (item.IsPlayer ? 2.3f : 2f));
+                if (cameraPoint.z <= 0f || !CameraViewportMapping.TryCameraPixelToScreen(camera,
+                    new Vector2(cameraPoint.x, cameraPoint.y), out Vector2 screenPoint)) continue;
                 float ratio = Mathf.Clamp01(item.Health / item.MaxHealth);
-                Rect bar = new Rect(point.x - 27f, Screen.height - point.y, 54f, 7f);
+                Rect bar = new Rect(screenPoint.x / uiScale - 27f, (Screen.height - screenPoint.y) / uiScale, 54f, 7f);
                 GUI.color = Color.black;
                 GUI.Box(bar, GUIContent.none);
                 GUI.color = item.IsPlayer ? new Color(.18f,.9f,.35f) : new Color(.9f,.18f,.14f);
@@ -239,7 +256,7 @@ namespace GameYunit.UI
 
         private void DrawCoopPage()
         {
-            GUILayout.Label("PREPARAÇÃO  ·  MAPA 01: ARENA DE TESTE");
+            GUILayout.Label("PREPARAÇÃO  ·  MAPA 01: VALE MEDIEVAL");
             DrawCharacterChoice();
             DrawWeaponChoice();
             GUILayout.Space(8f);

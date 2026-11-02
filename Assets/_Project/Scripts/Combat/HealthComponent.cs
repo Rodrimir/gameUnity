@@ -18,6 +18,7 @@ namespace GameYunit.Combat
         private readonly NetworkVariable<float> _damageMultiplier = new(1f, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
         private readonly NetworkVariable<bool> _alive = new(true, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
         private static readonly System.Collections.Generic.List<HealthComponent> ActiveList = new();
+        private float _nextContactDamageTime;
         public static IReadOnlyList<HealthComponent> Active => ActiveList;
 
         public static event Action<HealthComponent> OnAnyDeath;
@@ -44,6 +45,7 @@ namespace GameYunit.Combat
                 _health.Value = starting;
                 _damageMultiplier.Value = 1f;
                 _alive.Value = true;
+                _nextContactDamageTime = 0f;
             }
             OnAnyHealthChanged?.Invoke(this);
         }
@@ -89,8 +91,12 @@ namespace GameYunit.Combat
             }
         }
 
-        public void ApplyContactDamageServer(float amount, ulong sourceClientId) =>
+        public void ApplyContactDamageServer(float amount, ulong sourceClientId)
+        {
+            if (Time.time < _nextContactDamageTime) return;
+            _nextContactDamageTime = Time.time + 1f;
             ApplyDamageServer(amount, sourceClientId, transform.position);
+        }
 
         private void HandleHealthChanged(float previous, float current) => OnAnyHealthChanged?.Invoke(this);
         private void HandleMaxHealthChanged(float previous, float current) => OnAnyHealthChanged?.Invoke(this);

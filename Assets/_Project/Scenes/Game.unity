@@ -421280,9 +421280,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8b87cb4b3c0ddf075b0387205c058cf6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: GameYunit.Runtime::GameYunit.Player.CameraController
-  _followOffset: {x: 0, y: 12, z: -8}
-  _lookOffset: {x: 0, y: 1, z: 0}
+  _followOffset: {x: 0.45, y: 2.7, z: -5.2}
+  _lookOffset: {x: 0, y: 1.35, z: 0}
   _smoothTime: 0.12
+  _rotationSharpness: 12
 --- !u!114 &2034541390
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -421368,7 +421369,7 @@ Camera:
     height: 1
   near clip plane: 0.1
   far clip plane: 150
-  field of view: 45
+  field of view: 60
   orthographic: 0
   orthographic size: 5
   m_Depth: 0

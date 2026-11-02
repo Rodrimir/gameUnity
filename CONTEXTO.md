@@ -2,11 +2,11 @@
 
 Documento de entrada para quem chega ao projeto, seja uma pessoa da equipe ou um assistente de IA iniciando uma nova sessão. Resume o que existe, como está organizado, o que ainda não foi validado e como continuar. Os detalhes de cada bloco ficam em `Docs/BlocoN.md`; o roteiro original (prompts) está em `PROMPTS.md`.
 
-*Atualizado em 02/11/2026. Protótipo, personagens, combate, vida, pausa, upgrades e HUD conectados à cena `Game`. A Unity compilou os scripts sem erros; partida e Host–Client ainda não foram testados. O mapa da casa não está presente no checkout. Alterações locais não commitadas.*
+*Atualizado em 02/11/2026. A cena `Game` tem o Vale Medieval e a partida local entra em Host. O usuário confirmou que o mapa está aprovado e corrigiu a direção visual: câmera em terceira pessoa atrás do personagem, nunca isométrica. A primeira execução revelou câmera/enquadramento e dano de contato ainda por calibrar. Host–Client ainda não foi testado. Alterações locais não commitadas.*
 
 ## 1. O jogo
 
-Bullet heaven / survivors-like 3D em terceira pessoa (câmera top-down angular), com estética retrô de PlayStation 1. Co-op para **2 jogadores** em modo **Host–Client** pela rede local.
+Bullet heaven / survivors-like 3D em terceira pessoa, com câmera seguindo atrás do personagem e estética retrô de PlayStation 1. Co-op para **2 jogadores** em modo **Host–Client** pela rede local.
 
 | Item | Escolha |
 |---|---|
@@ -33,7 +33,7 @@ Bullet heaven / survivors-like 3D em terceira pessoa (câmera top-down angular),
 | Bloco | Conteúdo | Estado |
 |---|---|---|
 | 0 — Fundação | Pastas, `NetworkManagerSetup` (Host/Client, aprovação com máx. 2), `ObjectPoolManager`, `PlayerNetwork` | ✅ Compilado e testado |
-| 1 — Movimento/câmera | `PlayerController` (CharacterController no servidor), `CameraController` (só o jogador local), mira independente mouse/analógico (`PlayerAimInput`) | ✅ Compilado; 11 testes EditMode passaram |
+| 1 — Movimento/câmera | `PlayerController` (CharacterController no servidor), `CameraController` em terceira pessoa e movimento relativo à câmera (só o jogador local), mira mouse/analógico (`PlayerAimInput`) | ⚠️ Implementado; validar enquadramento e controles em Play Mode |
 | 2 — Hordas | `EnemySpawner` (fluxo contínuo, 1,5/s, até 128, anel 12–18 m), `EnemyAI` (persegue o jogador mais próximo a 1,5 m/s), `NetworkObjectPool` | ✅ Código compilado; ritmo reduzido pela metade; sessão ainda não retestada |
 | 3 — Ataque automático | `AutoAttackSystem`, `Projectile`, `ProjectileVolley`, `IDamageable`; 3 armas iniciais em `WeaponDefinition` (Varinha teleguiada, Leque de 5, Perfurante); preparo de mapa (`MapSetupTool`, `PlayerSpawnPoint`, spawn de inimigos apoiado no chão) | ✅ Compilado; 5 testes de combate passaram |
 | 4 — Vida/dano/morte | `HealthComponent` autoritativo (100 HP jogador, 60 inimigo), dano de contato (8/s), mortes, barras de HP | ✅ Integrado ao `IDamageable`; falta validar em Play Mode |
@@ -103,14 +103,14 @@ Os ZIPs originais permanecem localmente em `modelo-jogo/`; os arquivos grandes d
 
 **Fluxo do Editor:** após cada mudança visível, feche graciosamente a instância anterior, aguarde a janela e o lock do projeto fecharem, e reabra apenas uma instância na cena atualizada. Use `Tools/unity.sh --reopen-game` para `Game`, `--reopen-preview` para `Characters`, ou `--reopen-play` para testar o menu; o launcher aborta se o lock continuar ativo. Alterações não visuais não exigem reinício.
 
-O kit `Medieval Village & Dungeon Kit` v0.3.0 foi baixado para `modelo-jogo/MedievalVillageKit_Unity_0.3.0.zip` e extraído como pacote local em `Packages/com.danielgruginski.medievalkit/`. Tanto o ZIP quanto o pacote de 601 MB estão ignorados pelo Git para evitar adicionar centenas de megabytes ao repositório. Ele inclui `VK_ValleyTown` (216 × 168 m), `VK_Hamlet`, interiores, masmorras e cavernas, sob licença CC0. `VK_ValleyTown` foi integrado à cena `Game`: o piso de teste foi removido, o NavMesh pré-assado do pacote foi mantido, foram adicionados colliders estáticos às malhas e os dois spawns foram projetados no NavMesh. A cena precisa de inspeção visual e validação de desempenho/colisão em Play Mode. O kit tem estética medieval estilizada, foi feito para câmera top-down e não equivale a uma casa contemporânea. Vida, dano, morte e XP também precisam de validação em partida e co-op.
+O kit `Medieval Village & Dungeon Kit` v0.3.0 foi baixado para `modelo-jogo/MedievalVillageKit_Unity_0.3.0.zip` e extraído como pacote local em `Packages/com.danielgruginski.medievalkit/`. Tanto o ZIP quanto o pacote de 601 MB estão ignorados pelo Git para evitar adicionar centenas de megabytes ao repositório. Ele inclui `VK_ValleyTown` (216 × 168 m), `VK_Hamlet`, interiores, masmorras e cavernas, sob licença CC0. `VK_ValleyTown` foi integrado à cena `Game`: o piso de teste foi removido, o NavMesh pré-assado do pacote foi mantido, foram adicionados 1.595 colliders estáticos às malhas e os dois spawns foram projetados no NavMesh. O usuário aprovou o mapa. O Play Mode precisa de nova validação visual, de colisão e desempenho com a câmera em terceira pessoa. Vida, dano, morte e XP também precisam de validação em partida e co-op.
 
 ## 7. Como prosseguir (ordem recomendada)
 
 1. **Revisar e versionar a montagem local.** `Packages/`, `ProjectSettings/`, cenas, prefabs, Input Actions e `.meta` já foram criados. As alterações ainda não foram commitadas. Preserve os ZIPs originais e não versione caches/licenças/logs.
 2. **Validar a integração em Play Mode.** Conferir Host, dano, mortes/XP, contato, upgrades, pausa, armas na mão, animações e efeitos. Os testes automatizados ainda não foram executados nesta integração.
 3. **Testar Host–Client em instâncias separadas.** Falta validar seleção replicada, pausa e upgrades globais, movimento e HUD numa build Linux de Development.
-4. **Validar o mapa integrado** em `Game`: conferir visual, spawns, colisão dos jogadores e caminhos dos inimigos; medir o custo dos 5.344 colliders estáticos e simplificar se necessário.
+4. **Validar a partida e a câmera em terceira pessoa** em `Game`: conferir visual, spawns, colisão, caminhos dos inimigos e desempenho dos 1.595 colliders estáticos.
 5. **Polir o menu e ajustar o balanceamento** após os testes. A tela cheia e os VFX estão ligados ao fluxo atual.
 6. **Seguir para os próximos sistemas:** fim de partida/reinício, seleção de arma travada durante a partida e áudio.
 
@@ -129,7 +129,7 @@ Tomadas:
 - **Menus:** Coop (criar/entrar), vídeo, mapa (um por enquanto), seleção de personagem/arma inicial e projéteis com efeitos de disparo/rastro/impacto. A primeira versão de Coop/vídeo está em `Docs/Menu.md`; VFX e validação em Play Mode continuam pendentes.
 
 Pendentes:
-- **Mapa:** `VK_ValleyTown` está aplicado à cena `Game`; validar visualmente e em Play Mode. A solicitação anterior de uma casa contemporânea continua sem asset correspondente.
+- **Mapa:** `VK_ValleyTown` está aplicado à cena `Game` e foi aprovado pelo usuário; validar visibilidade, colisão e desempenho em Play Mode.
 - **Validação Host–Client e balanceamento:** as mecânicas novas foram compiladas, mas ainda não testadas em partida.
 
 ## 9. Limitações conhecidas

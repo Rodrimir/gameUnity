@@ -173,8 +173,22 @@ namespace GameYunit.Player
             }
 
             Vector2 move = _localMoveAction != null ? _localMoveAction.ReadValue<Vector2>() : Vector2.zero;
+            move = ConvertMoveToCameraSpace(move);
             Vector2 aim = _localAimInput != null ? _localAimInput.ReadAim() : Vector2.zero;
             return new PlayerInputData(move, aim).Sanitized();
+        }
+
+        private static Vector2 ConvertMoveToCameraSpace(Vector2 input)
+        {
+            if (input.sqrMagnitude < 0.0001f) return Vector2.zero;
+            Camera camera = Camera.main;
+            if (camera == null) return input;
+
+            Vector3 forward = Vector3.ProjectOnPlane(camera.transform.forward, Vector3.up).normalized;
+            Vector3 right = Vector3.ProjectOnPlane(camera.transform.right, Vector3.up).normalized;
+            Vector3 direction = right * input.x + forward * input.y;
+            if (direction.sqrMagnitude > 1f) direction.Normalize();
+            return new Vector2(direction.x, direction.z);
         }
 
         /// <summary>

@@ -6,7 +6,7 @@ Escopo solicitado pelo usuário em 02/11/2026. **Primeira versão integrada à c
 
 1. **Menu principal:** Jogar Coop, Vídeo e Sair.
 2. **Coop:** criar partida como Host ou entrar informando IP/porta do Host; mostrar estado da conexão e erros compreensíveis. Duas pessoas, rede local, UDP/7777.
-3. **Preparação/lobby:** escolher personagem e arma inicial; o Host escolhe o mapa e inicia a partida. Mostrar o único mapa disponível enquanto só houver um. O chão atual é uma arena de teste, até a chegada do mapa definitivo.
+3. **Preparação/lobby:** escolher personagem e arma inicial; o Host escolhe o mapa e inicia a partida. Mostrar o único mapa disponível enquanto só houver um. O mapa atual é o Vale Medieval.
 4. **Partida:** manter as escolhas aprovadas no servidor, com o mesmo catálogo e mapa em ambos os peers. A escolha inicial de arma deve ser travada ao iniciar; upgrades continuam sendo um sistema separado.
 
 ## Personagens e armas
@@ -24,7 +24,7 @@ Resolução da janela/monitor, janela ou tela cheia, VSync e opções PSX (resol
 
 - Coop Host e Client por IP, UDP/7777, com limite de dois jogadores.
 - Seleção inicial dos três personagens e das três armas existentes; o servidor valida a arma e mantém o catálogo igual em todos os peers.
-- O único mapa é mostrado como arena de teste, sem seletor fictício.
+- O único mapa, Vale Medieval, é mostrado sem seletor fictício.
 - Resolução de saída, janela/tela cheia, VSync e opções PSX (320×240, 426×240 ou 640×360, vertex snapping e intensidade afim) são ajustáveis localmente. As opções ainda não são persistidas.
 - A escala da UI é reduzida no Editor segundo a resolução interna PSX, para manter o painel inteiro visível no Game View. No jogo compilado, a escala parte da resolução de saída.
 - O botão Sair encerra o aplicativo fora do Editor.

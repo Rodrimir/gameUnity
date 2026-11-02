@@ -41,6 +41,7 @@ namespace GameYunit.Combat
         {
             _template = new GameObject("PooledWeaponBurstTemplate");
             ParticleSystem particles = _template.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             var main = particles.main;
             main.playOnAwake = false;
             main.loop = false;

@@ -65,6 +65,40 @@ namespace GameYunit.Core.Rendering
             return true;
         }
 
+        public static bool TryCameraPixelToScreen(Camera camera, Vector2 cameraPixel, out Vector2 screenPosition)
+        {
+            screenPosition = default;
+            if (camera == null) return false;
+            if (camera.targetTexture == null)
+            {
+                screenPosition = cameraPixel;
+                return camera.pixelRect.Contains(cameraPixel);
+            }
+
+            if (!ScreenRects.TryGetValue(camera, out Rect displayed))
+                displayed = new Rect(0f, 0f, Screen.width, Screen.height);
+            Rect pixels = camera.pixelRect;
+            if (displayed.width <= 0f || displayed.height <= 0f || pixels.width <= 0f || pixels.height <= 0f)
+                return false;
+
+            Vector2 normalized = (cameraPixel - pixels.position) / pixels.size;
+            screenPosition = displayed.position + Vector2.Scale(normalized, displayed.size);
+            return displayed.Contains(screenPosition);
+        }
+
+        public static bool TryGetScreenRect(Camera camera, out Rect screenRect)
+        {
+            screenRect = default;
+            if (camera == null) return false;
+            if (camera.targetTexture == null)
+            {
+                screenRect = camera.pixelRect;
+                return true;
+            }
+
+            return ScreenRects.TryGetValue(camera, out screenRect);
+        }
+
         // Com "Enter Play Mode Options" (sem domain reload) estáticos sobrevivem entre sessões de Play.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() => ScreenRects.Clear();
