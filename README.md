@@ -13,3 +13,5 @@ Atue como um Arquiteto de Software e Desenvolvedor Sênior de Unity (C#). Estamo
 O Bloco 1 adiciona movimentação com `CharacterController` no servidor e câmera local por ownership. Veja o [setup e roteiro de teste no CachyOS/Linux](Docs/Bloco1.md).
 
 O Bloco 2 adiciona hordas com pooling em cada peer e perseguição no servidor. Veja a [configuração e os testes de inimigos](Docs/Bloco2.md).
+
+O Bloco 3 adiciona ataque automático com projéteis simulados no servidor e visuais em pool nos clients, além do preparo de mapas importados. Veja [ataque, projéteis e mapa](Docs/Bloco3.md).

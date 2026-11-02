@@ -1,4 +1,5 @@
 using System;
+using GameYunit.Map;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
@@ -193,11 +194,19 @@ namespace GameYunit.Network
         /// </summary>
         private void ApproveConnection(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response)
         {
-            bool hasRoom = _networkManager.ConnectedClientsIds.Count < _maxPlayers;
+            int playerIndex = _networkManager.ConnectedClientsIds.Count;
+            bool hasRoom = playerIndex < _maxPlayers;
 
             response.Approved = hasRoom;
             response.CreatePlayerObject = hasRoom;
             response.Pending = false;
+
+            // Sem PlayerSpawnPoint na cena, o NGO mantém o comportamento padrão (origem).
+            if (hasRoom && PlayerSpawnPoint.TryGetSpawn(playerIndex, out Vector3 position, out Quaternion rotation))
+            {
+                response.Position = position;
+                response.Rotation = rotation;
+            }
 
             if (!hasRoom)
             {

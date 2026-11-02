@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e7728e3e76a4416b8a6aff11d80ec736, type: 3}
+  m_Name: Weapon_HomingWand
+  m_EditorClassIdentifier: 
+  _displayName: Varinha Clássica
+  _description: Projétil teleguiado leve que persegue o alvo e não erra.
+  _projectilePrefab: {fileID: 0}
+  _fireInterval: 0.6
+  _attackRadius: 12
+  _aim: 0
+  _damage: 12
+  _projectileSpeed: 12
+  _projectileLifetime: 2.0
+  _projectileCount: 1
+  _spreadAngle: 0
+  _homingTurnRate: 720
+  _pierceCount: 0
+  _pierceDamageFalloff: 1

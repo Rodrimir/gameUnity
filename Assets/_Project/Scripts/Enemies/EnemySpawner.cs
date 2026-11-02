@@ -20,6 +20,21 @@ namespace GameYunit.Enemies
         [SerializeField, Min(1f)] private float _maxSpawnRadius = 18f;
         [SerializeField, Min(1)] private int _positionAttempts = 12;
 
+        [Header("Mapa (amostragem do chão no servidor)")]
+        [Tooltip("Camadas consideradas chão e obstáculo. Candidatos sem chão abaixo (fora do mapa) são descartados.")]
+        [SerializeField] private LayerMask _groundMask = ~0;
+
+        [Tooltip("Altura acima do jogador de onde o raio desce procurando chão.")]
+        [SerializeField, Min(0.5f)] private float _groundProbeHeight = 10f;
+
+        [Tooltip("Desnível máximo abaixo do jogador aceito para o chão do spawn.")]
+        [SerializeField, Min(0.5f)] private float _groundProbeDepth = 20f;
+
+        [Tooltip("Cápsula livre exigida no ponto de spawn (raio, altura). Deve caber o inimigo.")]
+        [SerializeField] private Vector2 _clearanceCapsule = new Vector2(0.5f, 2f);
+
+        private static readonly RaycastHit[] GroundHits = new RaycastHit[8];
+
         private readonly HashSet<EnemyAI> _activeEnemies = new HashSet<EnemyAI>();
         private NetworkObject _prefabObject;
         private float _nextSpawnTime;
@@ -142,14 +157,50 @@ namespace GameYunit.Enemies
                     }
                 }
 
-                if (safe)
+                if (safe && TrySnapToGround(candidate, out Vector3 grounded))
                 {
-                    position = candidate;
+                    position = grounded;
                     return true;
                 }
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Desce um raio a partir de cima do candidato e apoia o pivot no primeiro chão estático.
+        /// Ignora CharacterControllers (jogadores e inimigos) e rejeita pontos obstruídos ou fora do mapa.
+        /// </summary>
+        private bool TrySnapToGround(Vector3 candidate, out Vector3 grounded)
+        {
+            grounded = candidate;
+            Vector3 origin = candidate + Vector3.up * _groundProbeHeight;
+            int count = Physics.RaycastNonAlloc(origin, Vector3.down, GroundHits, _groundProbeHeight + _groundProbeDepth,
+                _groundMask, QueryTriggerInteraction.Ignore);
+
+            float nearest = float.PositiveInfinity;
+            for (int i = 0; i < count; i++)
+            {
+                RaycastHit hit = GroundHits[i];
+                if (hit.distance < nearest && !(hit.collider is CharacterController))
+                {
+                    nearest = hit.distance;
+                    grounded = hit.point;
+                }
+            }
+
+            if (float.IsPositiveInfinity(nearest))
+            {
+                return false;
+            }
+
+            float radius = Mathf.Max(0.05f, _clearanceCapsule.x);
+            float height = Mathf.Max(radius * 2f, _clearanceCapsule.y);
+            const float lift = 0.1f; // Evita contar o próprio chão (inclusive rampas leves) como obstáculo.
+            Vector3 bottom = grounded + Vector3.up * (radius + lift);
+            Vector3 top = grounded + Vector3.up * (height - radius);
+            return !Physics.CheckCapsule(bottom, Vector3.Max(bottom, top), radius, _groundMask,
+                QueryTriggerInteraction.Ignore);
         }
 
         private void HandleEnemyDespawned(EnemyAI enemy)

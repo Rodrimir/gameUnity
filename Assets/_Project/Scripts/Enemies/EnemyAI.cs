@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using GameYunit.Core.Pooling;
 using Unity.Netcode;
 using Unity.Netcode.Components;
@@ -18,10 +19,18 @@ namespace GameYunit.Enemies
         [SerializeField, Min(0f)] private float _gravity = 25f;
         [SerializeField, Min(0f)] private float _terminalFallSpeed = 40f;
 
+        private static readonly List<EnemyAI> ActiveOnServerList = new List<EnemyAI>();
+
         private CharacterController _controller;
         private NetworkObject _target;
         private float _nextRetargetTime;
         private float _verticalSpeed;
+
+        /// <summary>
+        /// [Servidor] Inimigos publicados neste peer. Permite que armas escolham alvos
+        /// sem consultas de física nem configuração de layers. Vazio nos clients.
+        /// </summary>
+        public static IReadOnlyList<EnemyAI> ActiveOnServer => ActiveOnServerList;
 
         /// <summary>Observer local ao servidor: permite ao spawner acompanhar sua população.</summary>
         public event Action<EnemyAI> OnServerDespawned;
@@ -31,11 +40,16 @@ namespace GameYunit.Enemies
             base.OnNetworkSpawn();
             ResetSimulation();
             _controller.enabled = IsServer;
+            if (IsServer && !ActiveOnServerList.Contains(this))
+            {
+                ActiveOnServerList.Add(this);
+            }
         }
 
         public override void OnNetworkDespawn()
         {
             ResetSimulation();
+            ActiveOnServerList.Remove(this);
             if (IsServer)
             {
                 OnServerDespawned?.Invoke(this);
@@ -130,5 +144,9 @@ namespace GameYunit.Enemies
             _verticalSpeed = 0f;
             _nextRetargetTime = 0f;
         }
+
+        // Com "Enter Play Mode Options" (sem domain reload) estáticos sobrevivem entre sessões de Play.
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics() => ActiveOnServerList.Clear();
     }
 }
