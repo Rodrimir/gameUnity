@@ -244,6 +244,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 840bc182a02f4c9995d6e2196fd3e21a, type: 3}
   m_Name:
   m_EditorClassIdentifier: GameYunit.Runtime::GameYunit.Combat.HealthComponent
+  _maxHealth: 100
 --- !u!114 &2741297833417385758
 MonoBehaviour:
   m_ObjectHideFlags: 0

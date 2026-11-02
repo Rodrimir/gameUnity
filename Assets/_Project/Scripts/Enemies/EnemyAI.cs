@@ -11,6 +11,7 @@ namespace GameYunit.Enemies
     /// <summary>Perseguição e colisões no servidor. NetworkTransform apresenta o resultado nos clients.</summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(NetworkObject), typeof(NetworkTransform), typeof(CharacterController))]
+    [RequireComponent(typeof(HealthComponent))]
     public sealed class EnemyAI : NetworkBehaviour, IPoolable
     {
         [SerializeField, Min(0f)] private float _moveSpeed = 1.5f;
@@ -24,6 +25,7 @@ namespace GameYunit.Enemies
 
         private CharacterController _controller;
         private IEnemySteering _steering;
+        private HealthComponent _health;
         private NetworkObject _target;
         private float _nextRetargetTime;
         private float _verticalSpeed;
@@ -43,9 +45,10 @@ namespace GameYunit.Enemies
             base.OnNetworkSpawn();
             ResetSimulation();
             _controller.enabled = IsServer;
-            if (IsServer && !ActiveOnServerList.Contains(this))
+            if (IsServer)
             {
-                ActiveOnServerList.Add(this);
+                if (!ActiveOnServerList.Contains(this)) ActiveOnServerList.Add(this);
+                _health.OnDeath += HandleDeath;
             }
         }
 
@@ -55,6 +58,7 @@ namespace GameYunit.Enemies
             ActiveOnServerList.Remove(this);
             if (IsServer)
             {
+                _health.OnDeath -= HandleDeath;
                 OnServerDespawned?.Invoke(this);
             }
 
@@ -132,6 +136,11 @@ namespace GameYunit.Enemies
                     continue;
                 }
 
+                if (player.TryGetComponent(out HealthComponent health) && health.IsDead)
+                {
+                    continue;
+                }
+
                 float distance = Vector3.Distance(transform.position, player.transform.position);
                 if (distance < nearestDistance)
                 {
@@ -141,7 +150,7 @@ namespace GameYunit.Enemies
             }
         }
 
-        /// <summary>Para despawn e, no Bloco 4, morte. O handler do NGO fará a devolução ao pool em cada peer.</summary>
+        /// <summary>Para despawn e morte. O handler do NGO fará a devolução ao pool em cada peer.</summary>
         public void ReturnToPoolServer()
         {
             if (IsSpawned && IsServer)
@@ -154,11 +163,14 @@ namespace GameYunit.Enemies
 
         public void OnReturnedToPool() => ResetSimulation();
 
+        private void HandleDeath(HealthComponent health) => ReturnToPoolServer();
+
         private void ResetSimulation()
         {
             if (_controller == null)
             {
                 _controller = GetComponent<CharacterController>();
+                _health = GetComponent<HealthComponent>();
             }
 
             _controller.enabled = false;

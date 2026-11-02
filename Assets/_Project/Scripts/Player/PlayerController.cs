@@ -1,3 +1,4 @@
+using GameYunit.Combat;
 using Unity.Netcode;
 using Unity.Netcode.Components;
 using UnityEngine;
@@ -10,6 +11,7 @@ namespace GameYunit.Player
     /// </summary>
     [DisallowMultipleComponent]
     [RequireComponent(typeof(CharacterController), typeof(PlayerNetwork), typeof(NetworkTransform))]
+    [RequireComponent(typeof(HealthComponent))]
     public sealed class PlayerController : NetworkBehaviour
     {
         [Header("Movimento (simulado no servidor)")]
@@ -29,6 +31,7 @@ namespace GameYunit.Player
 
         private CharacterController _characterController;
         private PlayerNetwork _playerNetwork;
+        private HealthComponent _health;
         private Vector2 _moveInput;
         private Vector2 _aimInput;
         private float _verticalSpeed;
@@ -38,6 +41,7 @@ namespace GameYunit.Player
         {
             _characterController = GetComponent<CharacterController>();
             _playerNetwork = GetComponent<PlayerNetwork>();
+            _health = GetComponent<HealthComponent>();
             _characterController.enabled = false;
         }
 
@@ -83,7 +87,8 @@ namespace GameYunit.Player
             }
 
             // A intenção usa eixos do mundo: X = lateral, Z = frente. Não depende da câmera.
-            Vector3 velocity = new Vector3(_moveInput.x * _moveSpeed, _verticalSpeed, _moveInput.y * _moveSpeed);
+            Vector2 move = _health.IsDead ? Vector2.zero : _moveInput;
+            Vector3 velocity = new Vector3(move.x * _moveSpeed, _verticalSpeed, move.y * _moveSpeed);
             CollisionFlags collisions = _characterController.Move(velocity * deltaTime);
 
             if ((collisions & CollisionFlags.Above) != 0 && _verticalSpeed > 0f)
@@ -91,7 +96,7 @@ namespace GameYunit.Player
                 _verticalSpeed = 0f;
             }
 
-            if (_aimInput.sqrMagnitude > 0.0001f)
+            if (!_health.IsDead && _aimInput.sqrMagnitude > 0.0001f)
             {
                 Vector3 direction = new Vector3(_aimInput.x, 0f, _aimInput.y);
                 Quaternion desiredRotation = Quaternion.LookRotation(direction, Vector3.up);
