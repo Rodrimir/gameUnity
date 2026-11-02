@@ -14,9 +14,13 @@ namespace GameYunit.Player
         /// <summary>Direção de movimento no plano (x = lateral, y = frente), magnitude 0..1.</summary>
         public Vector2 Move;
 
-        public PlayerInputData(Vector2 move)
+        /// <summary>Direção de mira no mundo (x = X, y = Z). Zero preserva a orientação atual.</summary>
+        public Vector2 Aim;
+
+        public PlayerInputData(Vector2 move, Vector2 aim = default)
         {
             Move = move;
+            Aim = aim;
         }
 
         /// <summary>
@@ -25,26 +29,27 @@ namespace GameYunit.Player
         /// </summary>
         public readonly PlayerInputData Sanitized()
         {
-            if (!IsFinite(Move.x) || !IsFinite(Move.y))
-            {
-                return default;
-            }
-
-            return new PlayerInputData(Vector2.ClampMagnitude(Move, 1f));
+            // Validação independente: uma mira inválida não cancela um movimento válido.
+            return new PlayerInputData(SanitizeVector(Move), SanitizeVector(Aim));
         }
 
         public void NetworkSerialize<T>(BufferSerializer<T> serializer) where T : IReaderWriter
         {
             serializer.SerializeValue(ref Move);
+            serializer.SerializeValue(ref Aim);
         }
 
-        public readonly bool Equals(PlayerInputData other) => Move.Equals(other.Move);
+        public readonly bool Equals(PlayerInputData other) => Move.Equals(other.Move) && Aim.Equals(other.Aim);
 
         public override readonly bool Equals(object obj) => obj is PlayerInputData other && Equals(other);
 
-        public override readonly int GetHashCode() => Move.GetHashCode();
+        public override readonly int GetHashCode() => unchecked((Move.GetHashCode() * 397) ^ Aim.GetHashCode());
 
-        public override readonly string ToString() => $"Move={Move}";
+        public override readonly string ToString() => $"Move={Move}, Aim={Aim}";
+
+        private static Vector2 SanitizeVector(Vector2 value) => IsFinite(value.x) && IsFinite(value.y)
+            ? Vector2.ClampMagnitude(value, 1f)
+            : Vector2.zero;
 
         private static bool IsFinite(float value) => !float.IsNaN(value) && !float.IsInfinity(value);
     }

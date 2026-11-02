@@ -1,0 +1,14 @@
+{
+    "name": "GameYunit.Editor.Tests",
+    "rootNamespace": "GameYunit.Tests",
+    "references": [
+        "GameYunit.Core",
+        "GameYunit.Runtime",
+        "Unity.Netcode.Runtime",
+        "Unity.Collections",
+        "Unity.InputSystem",
+        "Unity.InputSystem.TestFramework"
+    ],
+    "includePlatforms": ["Editor"],
+    "optionalUnityReferences": ["TestAssemblies"]
+}

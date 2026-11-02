@@ -10,13 +10,14 @@ namespace GameYunit.Player
     /// o servidor valida, guarda e notifica os sistemas server-authoritative.
     /// </summary>
     /// <remarks>
-    /// <para>Este componente NÃO move o jogador. Sistemas futuros assinam <see cref="OnServerInputReceived"/>.</para>
+    /// <para>Este componente não move o jogador. PlayerController assina <see cref="OnServerInputReceived"/>.</para>
     /// <para>
     /// Fluxo: Owner.Update -> SubmitInputRpc (Client -> Server) -> validação -> ServerInput -> OnServerInputReceived.
     /// No Host o RPC executa localmente, pelo mesmo caminho.
     /// </para>
     /// </remarks>
     [DisallowMultipleComponent]
+    [RequireComponent(typeof(NetworkObject), typeof(PlayerAimInput))]
     public sealed class PlayerNetwork : NetworkBehaviour
     {
         private const string LogPrefix = "[PlayerNetwork]";
@@ -28,21 +29,34 @@ namespace GameYunit.Player
         [Tooltip("Variação mínima do input para gerar um novo envio. Evita spam de RPC por ruído de analógico.")]
         [SerializeField, Range(0f, 0.25f)] private float _inputChangeThreshold = 0.02f;
 
+        [Tooltip("Reenvia o estado mesmo sem mudanças para manter o comando ativo no servidor.")]
+        [SerializeField, Range(0.05f, 0.5f)] private float _inputHeartbeatInterval = 0.2f;
+
+        [Tooltip("Interrompe a intenção de movimento se o Owner parar de enviar input.")]
+        [SerializeField, Min(0.6f)] private float _serverInputTimeout = 1f;
+
         [Header("Debug")]
         [Tooltip("Loga no servidor cada input recebido.")]
         [SerializeField] private bool _logReceivedInput;
 
         private PlayerInputData _lastSentInput;
+        private double _lastSentTime;
+        private double _lastServerInputTime;
+        private InputAction _localMoveAction;
+        private PlayerAimInput _localAimInput;
+
+        /// <summary>Jogador local atual. Permite que novos observers recuperem um spawn já ocorrido.</summary>
+        public static PlayerNetwork LocalPlayer { get; private set; }
 
         #region Eventos (Observer)
 
         /// <summary>
-        /// O jogador desta máquina foi spawnado. Câmera de terceira pessoa e HUD local assinam aqui.
+        /// O jogador local foi spawnado ou recebeu ownership. Câmera e HUD local assinam aqui.
         /// Dispara apenas na máquina do Owner.
         /// </summary>
         public static event Action<PlayerNetwork> OnLocalPlayerSpawned;
 
-        /// <summary>O jogador desta máquina foi removido da rede.</summary>
+        /// <summary>O jogador local foi removido da rede ou perdeu ownership.</summary>
         public static event Action<PlayerNetwork> OnLocalPlayerDespawned;
 
         /// <summary>
@@ -62,27 +76,58 @@ namespace GameYunit.Player
         {
             base.OnNetworkSpawn();
 
-            if (IsOwner)
+            if (IsServer)
             {
-                EnableLocalInput();
-                OnLocalPlayerSpawned?.Invoke(this);
+                SetServerInput(default);
             }
+
+            RegisterLocalPlayer();
         }
 
         public override void OnNetworkDespawn()
         {
-            if (IsOwner)
-            {
-                DisableLocalInput();
-                OnLocalPlayerDespawned?.Invoke(this);
-            }
+            UnregisterLocalPlayer();
 
             if (IsServer)
             {
-                ServerInput = default;
+                SetServerInput(default);
             }
 
             base.OnNetworkDespawn();
+        }
+
+        public override void OnGainedOwnership()
+        {
+            base.OnGainedOwnership();
+            RegisterLocalPlayer();
+        }
+
+        public override void OnLostOwnership()
+        {
+            UnregisterLocalPlayer();
+            base.OnLostOwnership();
+        }
+
+        private void OnEnable()
+        {
+            if (IsSpawned && IsClient && IsOwner)
+            {
+                EnableLocalInput();
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (IsSpawned && IsServer)
+            {
+                SetServerInput(default);
+            }
+            else if (IsSpawned && IsClient && IsOwner)
+            {
+                SubmitInputRpc(default);
+            }
+
+            DisableLocalInput();
         }
 
         #endregion
@@ -91,64 +136,134 @@ namespace GameYunit.Player
 
         private void Update()
         {
+            if (!IsSpawned)
+            {
+                return;
+            }
+
+            if (IsServer && (ServerInput.Move != Vector2.zero || ServerInput.Aim != Vector2.zero) &&
+                Time.unscaledTimeAsDouble - _lastServerInputTime >= _serverInputTimeout)
+            {
+                SetServerInput(default);
+            }
+
             // Validação de autoridade: só a instância do jogador local lê e envia input.
             // O componente não é desabilitado nos demais para não interferir na recepção de RPCs no servidor.
-            if (!IsSpawned || !IsOwner)
+            if (!IsClient || !IsOwner)
             {
                 return;
             }
 
             PlayerInputData input = ReadLocalInput();
-            if (!ShouldSend(input))
+            if (!ShouldSend(input) && Time.unscaledTimeAsDouble - _lastSentTime < _inputHeartbeatInterval)
             {
                 return;
             }
 
             _lastSentInput = input;
+            _lastSentTime = Time.unscaledTimeAsDouble;
             SubmitInputRpc(input);
         }
 
         private PlayerInputData ReadLocalInput()
         {
-            Vector2 move = _moveAction != null ? _moveAction.action.ReadValue<Vector2>() : Vector2.zero;
-            return new PlayerInputData(move);
+            if (!Application.isFocused)
+            {
+                return default;
+            }
+
+            Vector2 move = _localMoveAction != null ? _localMoveAction.ReadValue<Vector2>() : Vector2.zero;
+            Vector2 aim = _localAimInput != null ? _localAimInput.ReadAim() : Vector2.zero;
+            return new PlayerInputData(move, aim).Sanitized();
         }
 
         /// <summary>
-        /// Envia apenas quando o input muda de forma relevante. Como o envio é por mudança,
-        /// o RPC usa entrega confiável (padrão): um "parar" perdido deixaria o jogador andando.
+        /// Envia mudanças relevantes imediatamente, incluindo a parada. Um heartbeat periódico
+        /// mantém comandos constantes ativos. O RPC usa entrega confiável (padrão).
         /// </summary>
         private bool ShouldSend(in PlayerInputData input)
         {
             float threshold = _inputChangeThreshold;
-            if ((input.Move - _lastSentInput.Move).sqrMagnitude > threshold * threshold)
+            if ((input.Move - _lastSentInput.Move).sqrMagnitude > threshold * threshold ||
+                (input.Aim - _lastSentInput.Aim).sqrMagnitude > threshold * threshold)
             {
                 return true;
             }
 
             // Garante que o retorno ao repouso sempre chegue ao servidor, mesmo abaixo do limiar.
-            return input.Move == Vector2.zero && _lastSentInput.Move != Vector2.zero;
+            return (input.Move == Vector2.zero && _lastSentInput.Move != Vector2.zero) ||
+                (input.Aim == Vector2.zero && _lastSentInput.Aim != Vector2.zero);
         }
 
         private void EnableLocalInput()
         {
-            if (_moveAction == null)
+            if (_localAimInput == null)
+            {
+                _localAimInput = GetComponent<PlayerAimInput>();
+            }
+
+            _localAimInput.EnableInput();
+            if (_localMoveAction != null)
+            {
+                return;
+            }
+
+            if (_moveAction == null || _moveAction.action == null)
             {
                 Debug.LogWarning($"{LogPrefix} Move Action não atribuída; o jogador local não enviará input.", this);
                 return;
             }
 
-            _moveAction.action.Enable();
+            // Cada Owner controla sua cópia; despawn de um clone remoto não desativa a action local.
+            _localMoveAction = _moveAction.action.Clone();
+            _localMoveAction.Enable();
+            _lastSentTime = double.NegativeInfinity;
         }
 
         private void DisableLocalInput()
         {
-            if (_moveAction != null)
+            if (_localAimInput != null)
             {
-                _moveAction.action.Disable();
+                _localAimInput.DisableInput();
+            }
+
+            if (_localMoveAction != null)
+            {
+                _localMoveAction.Disable();
+                _localMoveAction.Dispose();
+                _localMoveAction = null;
             }
 
             _lastSentInput = default;
+            _lastSentTime = double.NegativeInfinity;
+        }
+
+        private void RegisterLocalPlayer()
+        {
+            if (!IsSpawned || !IsClient || !IsOwner || LocalPlayer == this)
+            {
+                return;
+            }
+
+            LocalPlayer = this;
+            if (isActiveAndEnabled)
+            {
+                EnableLocalInput();
+            }
+
+            OnLocalPlayerSpawned?.Invoke(this);
+        }
+
+        private void UnregisterLocalPlayer()
+        {
+            DisableLocalInput();
+            if (LocalPlayer != this)
+            {
+                return;
+            }
+
+            LocalPlayer = null;
+            OnLocalPlayerDespawned?.Invoke(this);
         }
 
         #endregion
@@ -158,9 +273,14 @@ namespace GameYunit.Player
         /// <summary>
         /// [Client -> Server] Entrega o input do Owner. Executa somente no servidor.
         /// </summary>
-        [Rpc(SendTo.Server)]
+        [Rpc(SendTo.Server, RequireOwnership = true)]
         private void SubmitInputRpc(PlayerInputData input, RpcParams rpcParams = default)
         {
+            if (!IsSpawned || !IsServer)
+            {
+                return;
+            }
+
             // Só o dono deste jogador pode comandá-lo.
             ulong senderId = rpcParams.Receive.SenderClientId;
             if (senderId != OwnerClientId)
@@ -169,13 +289,18 @@ namespace GameYunit.Player
                 return;
             }
 
-            ServerInput = input.Sanitized();
+            SetServerInput(input.Sanitized());
 
             if (_logReceivedInput)
             {
                 Debug.Log($"{LogPrefix} [Server] Input do client {OwnerClientId}: {ServerInput}", this);
             }
+        }
 
+        private void SetServerInput(PlayerInputData input)
+        {
+            ServerInput = input;
+            _lastServerInputTime = Time.unscaledTimeAsDouble;
             OnServerInputReceived?.Invoke(ServerInput);
         }
 
@@ -187,6 +312,7 @@ namespace GameYunit.Player
         {
             OnLocalPlayerSpawned = null;
             OnLocalPlayerDespawned = null;
+            LocalPlayer = null;
         }
     }
 }
