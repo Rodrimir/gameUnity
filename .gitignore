@@ -1,0 +1,68 @@
+# ---------------------------------------------------------------------------
+# Unity — o projeto fica na raiz do repositório
+# ---------------------------------------------------------------------------
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Arquivos .meta DEVEM ser versionados (guardam GUIDs e import settings)
+!/[Aa]ssets/**/*.meta
+
+# Plugin autogerado do JetBrains Rider
+/[Aa]ssets/Plugins/Editor/JetBrains*
+
+# Addressables empacotados
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+/[Aa]ssets/[Ss]treamingAssets/aa.meta
+/[Aa]ssets/[Ss]treamingAssets/aa/*
+
+# Arquivos de solução/projeto gerados pela Unity
+ExportedObj/
+.consulo/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Crash reports / builds
+sysinfo.txt
+crashlytics-build.properties
+*.apk
+*.aab
+*.app
+*.x86_64
+*.unitypackage
+
+# ---------------------------------------------------------------------------
+# IDEs
+# ---------------------------------------------------------------------------
+.vs/
+.idea/
+.vscode/
+.gradle/
+
+# ---------------------------------------------------------------------------
+# Linux / KDE
+# ---------------------------------------------------------------------------
+*~
+.directory
+.Trash-*
