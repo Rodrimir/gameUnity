@@ -80,7 +80,7 @@ namespace GameYunit.Progression
 
         private void OnTriggerEnter(Collider other)
         {
-            if (!IsSpawned || !IsServer || _collected)
+            if (!IsSpawned || !IsServer || _collected || GameYunit.Gameplay.GameSessionController.IsPaused)
             {
                 return;
             }

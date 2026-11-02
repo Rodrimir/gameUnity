@@ -13,7 +13,7 @@ namespace GameYunit.Enemies
     {
         [SerializeField] private EnemyAI _enemyPrefab;
         [SerializeField] private NetworkObjectPool _networkPool;
-        [SerializeField, Min(0.05f)] private float _spawnInterval = 1f;
+        [SerializeField, Min(0.05f)] private float _spawnInterval = 2f;
         [SerializeField, Min(1)] private int _enemiesPerSpawn = 3;
         [SerializeField, Min(1)] private int _maxActiveEnemies = 128;
         [SerializeField, Min(1f)] private float _minSpawnRadius = 12f;
@@ -94,7 +94,7 @@ namespace GameYunit.Enemies
 
         private void Update()
         {
-            if (!IsSpawned || !IsServer || !_ready || Time.time < _nextSpawnTime)
+            if (!IsSpawned || !IsServer || !_ready || GameYunit.Gameplay.GameSessionController.IsPaused || Time.time < _nextSpawnTime)
             {
                 return;
             }

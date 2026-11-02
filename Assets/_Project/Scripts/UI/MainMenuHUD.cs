@@ -1,7 +1,10 @@
 using GameYunit.Characters;
 using GameYunit.Combat;
 using GameYunit.Network;
+using GameYunit.Progression;
 using GameYunit.Rendering;
+using GameYunit.Gameplay;
+using GameYunit.Player;
 using UnityEngine;
 
 namespace GameYunit.UI
@@ -32,6 +35,9 @@ namespace GameYunit.UI
         private bool _vSync = true;
         private bool _snapping = true;
         private float _affine = 1f;
+        private bool _upgradeChosen;
+        private bool _pauseVideo;
+        private int _lastPauseMode;
 
         private void Awake()
         {
@@ -55,6 +61,7 @@ namespace GameYunit.UI
 
         private void OnEnable()
         {
+            GameSessionController.OnPauseChanged += HandlePauseChanged;
             if (_network == null) return;
             _network.OnHostStarted += HandleHostStarted;
             _network.OnClientStarted += HandleClientStarted;
@@ -65,6 +72,7 @@ namespace GameYunit.UI
 
         private void OnDisable()
         {
+            GameSessionController.OnPauseChanged -= HandlePauseChanged;
             if (_network == null) return;
             _network.OnHostStarted -= HandleHostStarted;
             _network.OnClientStarted -= HandleClientStarted;
@@ -76,6 +84,11 @@ namespace GameYunit.UI
         private void OnGUI()
         {
             if (_network == null) return;
+            if (_network.IsRunning && PlayerNetwork.LocalPlayer != null && PlayerNetwork.LocalPlayer.IsSpawned)
+            {
+                DrawGameplayUI();
+                return;
+            }
             const float panelWidth = 440f;
             const float panelHeight = 470f;
             float scale = Mathf.Min((Screen.width - 24f) / panelWidth, (Screen.height - 16f) / panelHeight);
@@ -119,6 +132,109 @@ namespace GameYunit.UI
             GUILayout.Label(_status, GUI.skin.box);
             GUILayout.EndArea();
             GUI.matrix = previousMatrix;
+        }
+
+        private void DrawGameplayUI()
+        {
+            PlayerNetwork localPlayer = PlayerNetwork.LocalPlayer;
+            HealthComponent health = localPlayer.GetComponent<HealthComponent>();
+            PlayerLevel level = localPlayer.GetComponent<PlayerLevel>();
+            GameSessionController session = GameSessionController.Instance;
+            GUILayout.BeginArea(new Rect(12, 12, 270, 92), GUI.skin.box);
+            GUILayout.Label($"VIDA  {(health != null ? health.Health : 0):0}/{(health != null ? health.MaxHealth : 0):0}");
+            GUILayout.Label($"NÍVEL  {(level != null ? level.Level : 1)}     XP  {(level != null ? level.Xp : 0)}/{(level != null ? level.XpToNextLevel : 0)}");
+            float xp = level != null && level.XpToNextLevel > 0 ? (float)level.Xp / level.XpToNextLevel : 0f;
+            Rect xpRect = GUILayoutUtility.GetRect(240, 16);
+            GUI.Box(xpRect, GUIContent.none);
+            GUI.color = new Color(.15f,.8f,1f);
+            GUI.DrawTexture(new Rect(xpRect.x + 2, xpRect.y + 2, Mathf.Max(0, (xpRect.width - 4) * xp), xpRect.height - 4), Texture2D.whiteTexture);
+            GUI.color = Color.white;
+            GUILayout.EndArea();
+
+            DrawWorldHealthBars();
+            if (session == null || session.PauseMode == 0) return;
+            DrawPausePanel(session);
+        }
+
+        private void DrawWorldHealthBars()
+        {
+            Camera camera = Camera.main;
+            if (camera == null) return;
+            foreach (HealthComponent item in HealthComponent.Active)
+            {
+                if (item == null || !item.IsSpawned || item.MaxHealth <= 0f || !item.IsAlive) continue;
+                Vector3 point = camera.WorldToScreenPoint(item.transform.position + Vector3.up * (item.IsPlayer ? 2.3f : 2f));
+                if (point.z <= 0f) continue;
+                float ratio = Mathf.Clamp01(item.Health / item.MaxHealth);
+                Rect bar = new Rect(point.x - 27f, Screen.height - point.y, 54f, 7f);
+                GUI.color = Color.black;
+                GUI.Box(bar, GUIContent.none);
+                GUI.color = item.IsPlayer ? new Color(.18f,.9f,.35f) : new Color(.9f,.18f,.14f);
+                GUI.DrawTexture(new Rect(bar.x + 1, bar.y + 1, Mathf.Max(0f, (bar.width - 2) * ratio), bar.height - 2), Texture2D.whiteTexture);
+                GUI.color = Color.white;
+            }
+        }
+
+        private void DrawPausePanel(GameSessionController session)
+        {
+            const float width = 440f;
+            const float height = 390f;
+            float scale = Mathf.Min((Screen.width - 24f) / width, (Screen.height - 16f) / height);
+#if UNITY_EDITOR
+            if (_psx != null) scale = Mathf.Min(scale, (_psx.InternalResolution.y - 16f) / height);
+#endif
+            scale = Mathf.Clamp(scale, .25f, 1f);
+            Matrix4x4 previous = GUI.matrix;
+            GUI.matrix = Matrix4x4.TRS(Vector3.zero, Quaternion.identity, new Vector3(scale, scale, 1f));
+            float w = Screen.width / scale, h = Screen.height / scale;
+            GUILayout.BeginArea(new Rect(w*.5f-width*.5f,h*.5f-height*.5f,width,height), GUI.skin.box);
+            if (session.PauseMode == 2)
+            {
+                GUILayout.Label("MARCO DE 30 ABATES", HeaderStyle());
+                if (_upgradeChosen) GUILayout.Label("Aguardando o outro jogador escolher...");
+                else
+                {
+                    GUILayout.Label("Escolha uma melhoria para seu personagem:");
+                    if (GUILayout.Button("+5% de dano", GUILayout.Height(42))) ChooseUpgrade(session, 0);
+                    if (GUILayout.Button("+5% de vida máxima", GUILayout.Height(42))) ChooseUpgrade(session, 1);
+                    if (GUILayout.Button("Curar toda a vida", GUILayout.Height(42))) ChooseUpgrade(session, 2);
+                }
+            }
+            else if (_pauseVideo)
+            {
+                GUILayout.Label("VÍDEO", HeaderStyle());
+                DrawVideoPage();
+                if (GUILayout.Button("VOLTAR À PAUSA")) _pauseVideo = false;
+            }
+            else
+            {
+                GUILayout.Label("JOGO PAUSADO", HeaderStyle());
+                if (GUILayout.Button("VOLTAR AO JOGO", GUILayout.Height(44))) session.TogglePause();
+                if (GUILayout.Button("VÍDEO", GUILayout.Height(38))) _pauseVideo = true;
+                _fullscreen = GUILayout.Toggle(_fullscreen, "Tela cheia");
+                if (GUILayout.Button("APLICAR TELA CHEIA")) ApplyFullscreen();
+            }
+            GUILayout.EndArea();
+            GUI.matrix = previous;
+        }
+
+        private void ChooseUpgrade(GameSessionController session, int option)
+        {
+            session.ChooseUpgrade(option);
+            _upgradeChosen = true;
+        }
+
+        private void HandlePauseChanged(int mode, int kills)
+        {
+            if (mode == 2 && _lastPauseMode != 2) _upgradeChosen = false;
+            if (mode == 0) _pauseVideo = false;
+            _lastPauseMode = mode;
+        }
+
+        private void ApplyFullscreen()
+        {
+            Resolution resolution = Screen.currentResolution;
+            Screen.SetResolution(resolution.width, resolution.height, _fullscreen);
         }
 
         private void DrawCoopPage()

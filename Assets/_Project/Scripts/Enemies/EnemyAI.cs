@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GameYunit.Combat;
 using GameYunit.Core.Pooling;
 using Unity.Netcode;
 using Unity.Netcode.Components;
@@ -12,7 +13,7 @@ namespace GameYunit.Enemies
     [RequireComponent(typeof(NetworkObject), typeof(NetworkTransform), typeof(CharacterController))]
     public sealed class EnemyAI : NetworkBehaviour, IPoolable
     {
-        [SerializeField, Min(0f)] private float _moveSpeed = 3f;
+        [SerializeField, Min(0f)] private float _moveSpeed = 1.5f;
         [SerializeField, Min(0f)] private float _stoppingDistance = 1f;
         [SerializeField, Min(0.02f)] private float _retargetInterval = 0.25f;
         [SerializeField, Min(0f)] private float _rotationSpeed = 540f;
@@ -26,6 +27,7 @@ namespace GameYunit.Enemies
         private NetworkObject _target;
         private float _nextRetargetTime;
         private float _verticalSpeed;
+        private float _nextContactDamageTime;
 
         /// <summary>
         /// [Servidor] Inimigos publicados neste peer. Permite que armas escolham alvos
@@ -67,7 +69,7 @@ namespace GameYunit.Enemies
 
         private void FixedUpdate()
         {
-            if (!IsSpawned || !IsServer || !_controller.enabled)
+            if (!IsSpawned || !IsServer || !_controller.enabled || GameYunit.Gameplay.GameSessionController.IsPaused)
             {
                 return;
             }
@@ -85,6 +87,11 @@ namespace GameYunit.Enemies
                 Vector3 toTarget = _target.transform.position - transform.position;
                 toTarget.y = 0f;
                 float distance = toTarget.magnitude;
+                if (distance <= _stoppingDistance + 0.5f && Time.time >= _nextContactDamageTime)
+                {
+                    _target.GetComponent<HealthComponent>()?.ApplyContactDamageServer(8f, _target.OwnerClientId);
+                    _nextContactDamageTime = Time.time + 1f;
+                }
 
                 // Navegação opcional (ex.: NavMeshSteering): só muda a direção; a parada continua medida até o alvo.
                 Vector3 direction = toTarget;
@@ -158,6 +165,7 @@ namespace GameYunit.Enemies
             _target = null;
             _verticalSpeed = 0f;
             _nextRetargetTime = 0f;
+            _nextContactDamageTime = 0f;
         }
 
         // Com "Enter Play Mode Options" (sem domain reload) estáticos sobrevivem entre sessões de Play.

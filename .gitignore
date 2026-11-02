@@ -53,8 +53,10 @@ crashlytics-build.properties
 *.x86_64
 *.unitypackage
 
-# Model source archives stay local; imported Unity assets and provenance are versioned.
+# Large model and map sources stay local; see CONTEXTO.md for map reinstallation.
 /modelo-jogo/*.zip
+# Large third-party map package stays local, like the original model archives.
+/Packages/com.danielgruginski.medievalkit/
 
 # Raw model geometry and source textures stay local, including FBX models.
 /Assets/_Project/Art/Models/Characters/**/Source/**/*.fbx

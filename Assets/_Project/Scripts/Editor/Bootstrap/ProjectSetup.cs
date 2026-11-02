@@ -23,6 +23,7 @@ using UnityEngine.AI;
 using UnityEngine.InputSystem;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
 namespace GameYunit.Editor
@@ -32,6 +33,7 @@ namespace GameYunit.Editor
     {
         public const string GameScene = "Assets/_Project/Scenes/Game.unity";
         public const string PreviewScene = "Assets/_Project/Scenes/Characters.unity";
+        private const string ValleyTownScene = "Packages/com.danielgruginski.medievalkit/Generated/Levels/VK_ValleyTown.unity";
         private const string Art = "Assets/_Project/Art/Models/Characters";
         private const string Prefabs = "Assets/_Project/Prefabs";
         private const string AnimationFolder = "Assets/_Project/Art/Animations";
@@ -605,7 +607,141 @@ namespace GameYunit.Editor
         }
 
         [MenuItem("GameYunit/Projeto/Abrir cena de jogo")]
-        public static void OpenGame() => EditorSceneManager.OpenScene(GameScene);
+        public static void OpenGame()
+        {
+            EditorSceneManager.OpenScene(GameScene);
+            EditorApplication.ExecuteMenuItem("Window/General/Scene");
+            SceneView view = SceneView.lastActiveSceneView;
+            if (view == null) return;
+
+            GameObject map = GameObject.Find("Mapa - Vale Medieval");
+            Bounds bounds = map != null ? CalculateRendererBounds(map) : new Bounds(Vector3.zero, Vector3.one * 60f);
+            float viewSize = Mathf.Max(82f, Mathf.Max(bounds.size.x, bounds.size.z) * 1.25f);
+            view.LookAt(bounds.center, Quaternion.Euler(58f, -28f, 0f), viewSize);
+        }
+
+        [MenuItem("GameYunit/Mapa/Integrar Vale Medieval na cena Game")]
+        public static void IntegrateValleyTown()
+        {
+            if (EditorApplication.isPlayingOrWillChangePlaymode)
+                throw new InvalidOperationException("Encerre o Play Mode antes de integrar o mapa.");
+            if (!File.Exists(ValleyTownScene))
+                throw new FileNotFoundException("A cena VK_ValleyTown não foi encontrada no pacote Medieval Village Kit.", ValleyTownScene);
+
+            Scene gameScene = EditorSceneManager.OpenScene(GameScene, OpenSceneMode.Single);
+            Scene mapScene = EditorSceneManager.OpenScene(ValleyTownScene, OpenSceneMode.Additive);
+            GameObject[] sourceRoots = mapScene.GetRootGameObjects();
+            GameObject level = sourceRoots.FirstOrDefault(root => root.name == "Level_VK_ValleyTown");
+            GameObject kitNavMesh = sourceRoots.FirstOrDefault(root => root.name == "KitNavMesh");
+            if (level == null || kitNavMesh == null)
+            {
+                EditorSceneManager.CloseScene(mapScene, true);
+                throw new InvalidOperationException("A cena VK_ValleyTown não contém o nível e o NavMesh esperados.");
+            }
+
+            foreach (GameObject root in gameScene.GetRootGameObjects())
+            {
+                if (root.name == "Mapa - Vale Medieval" || root.name == "Mapa de teste" || root.name == "Directional Light")
+                    Object.DestroyImmediate(root);
+            }
+
+            level.name = "Mapa - Vale Medieval";
+            SceneManager.MoveGameObjectToScene(level, gameScene);
+            SceneManager.MoveGameObjectToScene(kitNavMesh, gameScene);
+            EditorSceneManager.CloseScene(mapScene, true);
+
+            int meshColliders = PrepareStaticMap(level);
+            PositionPlayerSpawns(gameScene, level);
+            EditorSceneManager.MarkSceneDirty(gameScene);
+            EditorSceneManager.SaveScene(gameScene, GameScene);
+            AssetDatabase.SaveAssets();
+
+            Debug.Log($"[ProjectSetup] Vale Medieval integrado na cena Game; {meshColliders} MeshCollider(s) estático(s) adicionados e spawns projetados no NavMesh.", level);
+        }
+
+        private static int PrepareStaticMap(GameObject root)
+        {
+            const StaticEditorFlags flags = StaticEditorFlags.BatchingStatic | StaticEditorFlags.ContributeGI |
+                StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic | StaticEditorFlags.ReflectionProbeStatic;
+            int added = 0;
+            foreach (MeshFilter filter in root.GetComponentsInChildren<MeshFilter>(true))
+            {
+                GameObject go = filter.gameObject;
+                if (filter.sharedMesh == null || !go.TryGetComponent(out MeshRenderer _)) continue;
+                GameObjectUtility.SetStaticEditorFlags(go, GameObjectUtility.GetStaticEditorFlags(go) | flags);
+                if (!NeedsMapCollider(go.name)) continue;
+                if (go.TryGetComponent(out Collider _)) continue;
+                MeshCollider collider = go.AddComponent<MeshCollider>();
+                collider.sharedMesh = filter.sharedMesh;
+                added++;
+            }
+            return added;
+        }
+
+        private static bool NeedsMapCollider(string name)
+        {
+            // Keep collision on terrain, walls, boundaries and large rocks. Grass, foliage and small props
+            // remain render-only so a large map does not create thousands of unnecessary physics bodies.
+            return name.Contains("VKV_Chunk") || name.Contains("VKV_Paving") ||
+                name.Contains("_Wall") || name.Contains("_Corner") || name.Contains("_TownWall") ||
+                name.Contains("_LowWall") || name.Contains("_Palisade") || name.Contains("_Fence") ||
+                name.Contains("_Door") || name.Contains("_Stair") || name.Contains("_Bridge") ||
+                name.Contains("_Rock_Boulder") || name.Contains("_Rock_Cluster");
+        }
+
+        private static void PositionPlayerSpawns(Scene scene, GameObject map)
+        {
+            PlayerSpawnPoint[] spawns = Object.FindObjectsByType<PlayerSpawnPoint>(FindObjectsSortMode.None)
+                .Where(point => point.gameObject.scene == scene)
+                .OrderBy(point => point.Slot)
+                .Take(2)
+                .ToArray();
+            if (spawns.Length < 2)
+            {
+                Debug.LogWarning("[ProjectSetup] O mapa foi integrado, mas a cena não tem dois PlayerSpawnPoint.", map);
+                return;
+            }
+
+            Bounds bounds = CalculateRendererBounds(map);
+            var positions = new System.Collections.Generic.List<Vector3>(2);
+            for (float radius = 0f; radius <= 50f && positions.Count < 2; radius += 2.5f)
+            {
+                for (int angle = 0; angle < 360 && positions.Count < 2; angle += 30)
+                {
+                    float radians = angle * Mathf.Deg2Rad;
+                    Vector3 candidate = bounds.center + new Vector3(Mathf.Cos(radians) * radius, 0f, Mathf.Sin(radians) * radius);
+                    candidate.y = 4f;
+                    if (!NavMesh.SamplePosition(candidate, out NavMeshHit hit, 6f, NavMesh.AllAreas)) continue;
+                    if (positions.Any(position => Vector3.Distance(position, hit.position) < 3f)) continue;
+                    positions.Add(hit.position);
+                }
+            }
+
+            if (positions.Count < 2)
+            {
+                Debug.LogWarning("[ProjectSetup] Não encontrei dois pontos próximos no NavMesh; mantendo os spawns atuais.", map);
+                return;
+            }
+
+            for (int i = 0; i < spawns.Length; i++)
+            {
+                Vector3 position = positions[i] + Vector3.up * 0.05f;
+                Vector3 towardCenter = bounds.center - position;
+                towardCenter.y = 0f;
+                spawns[i].transform.SetPositionAndRotation(position,
+                    towardCenter.sqrMagnitude > 0.01f ? Quaternion.LookRotation(towardCenter) : Quaternion.identity);
+                EditorUtility.SetDirty(spawns[i]);
+            }
+        }
+
+        private static Bounds CalculateRendererBounds(GameObject root)
+        {
+            Renderer[] renderers = root.GetComponentsInChildren<Renderer>(true);
+            if (renderers.Length == 0) return new Bounds(root.transform.position, Vector3.one);
+            Bounds bounds = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
+            return bounds;
+        }
 
         [MenuItem("GameYunit/Projeto/Abrir menu em Play Mode")]
         public static void PlayGameForMenuReview()

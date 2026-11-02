@@ -15,6 +15,8 @@ GameObject:
   - component: {fileID: 5312048890005489358}
   - component: {fileID: 2392185945084012593}
   - component: {fileID: 6726328827057912445}
+  - component: {fileID: 6923410982784512340}
+  - component: {fileID: 6923410982784512341}
   m_Layer: 0
   m_Name: BiomechanicalEnemy
   m_TagString: Untagged
@@ -149,7 +151,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: GameYunit.Runtime::GameYunit.Enemies.EnemyAI
   ShowTopMostFoldoutHeaderGroup: 1
-  _moveSpeed: 3
+  _moveSpeed: 1.5
   _stoppingDistance: 1
   _retargetInterval: 0.25
   _rotationSpeed: 540
@@ -187,6 +189,31 @@ MonoBehaviour:
   _xpValue: 1
   _dropHeight: 0.5
   _dropOnServerDespawn: 1
+--- !u!114 &6923410982784512340
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7899492695454110963}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 840bc182a02f4c9995d6e2196fd3e21a, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: GameYunit.Runtime::GameYunit.Combat.HealthComponent
+--- !u!114 &6923410982784512341
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7899492695454110963}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c8184ef5ba429150889c5a1dceb4a72f, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: GameYunit.Runtime::GameYunit.Characters.CharacterAnimationDriver
+  _runSpeed: 3
 --- !u!1001 &4232389586625890914
 PrefabInstance:
   m_ObjectHideFlags: 0

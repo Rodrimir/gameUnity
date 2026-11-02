@@ -32,6 +32,7 @@ namespace GameYunit.Combat
             public float Damage;
             public int PierceCount;
             public float PierceDamageFalloff;
+            public WeaponDefinition.ProjectileStyle Style;
         }
 
         // Compartilhado: consultas de física acontecem só na main thread.
@@ -59,6 +60,9 @@ namespace GameYunit.Combat
         private float _damage;
         private int _pierceRemaining;
         private float _pierceFalloff;
+        private TrailRenderer _trail;
+        private LineRenderer _arc;
+        private Renderer _renderer;
 
         public uint ShotId { get; private set; }
 
@@ -72,6 +76,20 @@ namespace GameYunit.Combat
             {
                 ownCollider.enabled = false;
             }
+            _renderer = GetComponent<Renderer>();
+            Shader shader = Shader.Find("Sprites/Default");
+            _trail = gameObject.AddComponent<TrailRenderer>();
+            _trail.time = .16f;
+            _trail.startWidth = .11f;
+            _trail.endWidth = .015f;
+            _trail.material = new Material(shader);
+            _arc = gameObject.AddComponent<LineRenderer>();
+            _arc.positionCount = 6;
+            _arc.useWorldSpace = false;
+            _arc.startWidth = .035f;
+            _arc.endWidth = .01f;
+            _arc.material = new Material(shader);
+            _arc.enabled = false;
         }
 
         internal void Launch(AutoAttackSystem shooter, uint shotId, in LaunchData data, float elapsed, bool serverSimulated)
@@ -87,6 +105,7 @@ namespace GameYunit.Combat
             _damage = data.Damage;
             _pierceRemaining = data.PierceCount;
             _pierceFalloff = data.PierceDamageFalloff;
+            ApplyVisualStyle(data.Style);
             _alreadyHit.Clear();
 
             // Visual atrasado: reproduz a trajetória (inclusive curvas) até onde o servidor já está.
@@ -102,9 +121,37 @@ namespace GameYunit.Combat
             transform.SetPositionAndRotation(position, Quaternion.LookRotation(_direction, Vector3.up));
         }
 
+        private void ApplyVisualStyle(WeaponDefinition.ProjectileStyle style)
+        {
+            Color color = style == WeaponDefinition.ProjectileStyle.ArcaneLightning
+                ? new Color(.15f,.85f,1f,1f) : style == WeaponDefinition.ProjectileStyle.Bullet
+                    ? new Color(1f,.68f,.2f,1f) : new Color(.78f,.9f,1f,1f);
+            transform.localScale = style == WeaponDefinition.ProjectileStyle.Bullet
+                ? new Vector3(.12f,.12f,.42f) : new Vector3(.25f,.25f,.25f);
+            if (_renderer != null)
+            {
+                var block = new MaterialPropertyBlock();
+                _renderer.GetPropertyBlock(block);
+                block.SetColor("_BaseColor", color);
+                block.SetColor("_Color", color);
+                _renderer.SetPropertyBlock(block);
+            }
+            _trail.startColor = color;
+            _trail.endColor = new Color(color.r,color.g,color.b,0f);
+            _arc.enabled = style == WeaponDefinition.ProjectileStyle.ArcaneLightning;
+            _arc.startColor = color;
+            _arc.endColor = Color.white;
+            if (_arc.enabled)
+            {
+                for (int i = 0; i < _arc.positionCount; i++)
+                    _arc.SetPosition(i, new Vector3(UnityEngine.Random.Range(-.12f,.12f), UnityEngine.Random.Range(-.12f,.12f), -.4f + i*.16f));
+            }
+            _trail.Clear();
+        }
+
         private void Update()
         {
-            if (_shooter == null)
+            if (_shooter == null || GameYunit.Gameplay.GameSessionController.IsPaused)
             {
                 return;
             }

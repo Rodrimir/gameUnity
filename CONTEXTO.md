@@ -2,7 +2,7 @@
 
 Documento de entrada para quem chega ao projeto, seja uma pessoa da equipe ou um assistente de IA iniciando uma nova sessão. Resume o que existe, como está organizado, o que ainda não foi validado e como continuar. Os detalhes de cada bloco ficam em `Docs/BlocoN.md`; o roteiro original (prompts) está em `PROMPTS.md`.
 
-*Atualizado em 02/11/2026, após montar o protótipo, adaptar os personagens e aprovar 25 testes. A primeira versão do menu Coop/vídeo foi conectada à cena `Game`, mas ainda não foi validada em Play Mode. Alterações locais não commitadas.*
+*Atualizado em 02/11/2026. Protótipo, personagens, combate, vida, pausa, upgrades e HUD conectados à cena `Game`. A Unity compilou os scripts sem erros; partida e Host–Client ainda não foram testados. O mapa da casa não está presente no checkout. Alterações locais não commitadas.*
 
 ## 1. O jogo
 
@@ -34,15 +34,15 @@ Bullet heaven / survivors-like 3D em terceira pessoa (câmera top-down angular),
 |---|---|---|
 | 0 — Fundação | Pastas, `NetworkManagerSetup` (Host/Client, aprovação com máx. 2), `ObjectPoolManager`, `PlayerNetwork` | ✅ Compilado e testado |
 | 1 — Movimento/câmera | `PlayerController` (CharacterController no servidor), `CameraController` (só o jogador local), mira independente mouse/analógico (`PlayerAimInput`) | ✅ Compilado; 11 testes EditMode passaram |
-| 2 — Hordas | `EnemySpawner` (fluxo contínuo, 3/s, até 128, anel 12–18 m), `EnemyAI` (persegue o jogador mais próximo), `NetworkObjectPool` | ✅ Compilado; 12 testes passaram (com sessão Host real) |
+| 2 — Hordas | `EnemySpawner` (fluxo contínuo, 1,5/s, até 128, anel 12–18 m), `EnemyAI` (persegue o jogador mais próximo a 1,5 m/s), `NetworkObjectPool` | ✅ Código compilado; ritmo reduzido pela metade; sessão ainda não retestada |
 | 3 — Ataque automático | `AutoAttackSystem`, `Projectile`, `ProjectileVolley`, `IDamageable`; 3 armas iniciais em `WeaponDefinition` (Varinha teleguiada, Leque de 5, Perfurante); preparo de mapa (`MapSetupTool`, `PlayerSpawnPoint`, spawn de inimigos apoiado no chão) | ✅ Compilado; 5 testes de combate passaram |
-| 4 — Vida/dano/morte | `HealthComponent`, `OnDeath`, barra de HP | 🔧 **Em desenvolvimento por outra pessoa**; nada no repositório ainda |
+| 4 — Vida/dano/morte | `HealthComponent` autoritativo (100 HP jogador, 60 inimigo), dano de contato (8/s), mortes, barras de HP | ✅ Integrado ao `IDamageable`; falta validar em Play Mode |
 | 5 — XP e níveis | `XpDropper`, `XpDropService`, `XpGem`, `PlayerLevel` (XP individual, curva 5 + 5×(N−1)) | ✅ Compilado; 3 testes de progressão passaram |
 | 6 — Mapa/NavMesh/PSX | `PsxRenderTextureSetup` (320x240, Point, letterbox), shader `GameYunit/PSX Lit` (snap + afim + Gouraud), regras de importação retrô, `NavMeshSetupTool`, `NavMeshSteering` | ✅ Compilado; 4 testes de mapa/renderização passaram |
 | Personagens e cena | Biomechanical como inimigo; Survivalist, Adventure Female e Gravemind selecionáveis; `PlayerAppearance`, prefabs e cenas `Game`/`Characters` | ✅ Teste da cena real: Host, seleção dos três personagens e spawn do monstro |
-| Menu Coop e vídeo | `MainMenuHUD`, IP do Host, escolhas iniciais, resolução de saída e parâmetros PSX | 🟡 Painel inteiro conferido visualmente em Play Mode; cliques e fluxo Client ainda pendentes |
+| Menu e partida | `MainMenuHUD`, Coop/vídeo, ocultação ao entrar, pausa global por `Esc`, HUD de XP/nível e upgrades a cada 30 abates | ✅ Ligado à cena; falta validar cliques e fluxo Host–Client |
 
-"Compilado e testado" vale para Unity 6000.3.27f2 + NGO 2.13.3. A montagem anterior ao menu teve **25 testes aprovados**, com gráficos habilitados na RTX 3060, incluindo sessões Host reais e a cena `Game`. O menu foi conferido visualmente em Play Mode; seus controles ainda não foram testados interativamente. O teste de renderização corrigiu a limpeza para destruir a câmera antes da RenderTexture. Resultados locais em `Logs/TestResults.xml`; execução reproduzível por `Tools/unity.sh --verify-and-open`. Uma instância Client separada ainda precisa de teste manual.
+"Compilado e testado" acima registra a validação anterior à integração de vida, pausa e upgrades. Esta integração foi compilada pela Unity, mas nenhum teste automatizado ou fluxo completo foi executado nesta etapa. `Logs/TestResults.xml` contém resultados antigos e não representa esta integração. Uma instância Client separada ainda precisa de teste manual.
 
 ## 4. Organização do código
 
@@ -56,6 +56,7 @@ Assets/_Project/
     Player/      PlayerNetwork, PlayerController, PlayerAimInput, PlayerInputData, CameraController
     Enemies/     EnemyAI, EnemySpawner, IEnemySteering, NavMeshSteering
     Combat/      AutoAttackSystem, Projectile, ProjectileVolley, WeaponDefinition, IDamageable
+    Gameplay/    GameSessionController (pausa replicada e marcos de abates)
     Progression/ PlayerLevel, XpGem, XpDropper, XpDropService
     Map/         PlayerSpawnPoint
     Rendering/   GameYunit.Rendering — PsxRenderTextureSetup (usa uGUI)
@@ -79,14 +80,7 @@ Convenções: namespaces `GameYunit.<Pasta>`; o código em `UI/Debug` usa o name
 
 ## 5. Pontos de integração (contratos entre blocos)
 
-Para o **Bloco 4**:
-- **Dano:** implemente `GameYunit.Combat.IDamageable.ApplyDamageServer(float amount, ulong sourceClientId, Vector3 hitPoint)` no `HealthComponent`. Os projéteis já o chamam no servidor, procurando com `GetComponentInParent<IDamageable>()` a partir do collider atingido.
-- **Morte do inimigo:** chame `EnemyAI.ReturnToPoolServer()`. Esse método despublica o inimigo e dispara `EnemyAI.OnServerDespawned`. Os sistemas que já escutam esse evento passam a funcionar sozinhos:
-  - o `EnemySpawner` atualiza a contagem;
-  - o `XpDropper` gera a gema de XP.
-- **Se houver despawn que não é morte:** desligue *Drop On Server Despawn* no `XpDropper` e chame `XpDropper.NotifyKilledServer()` a partir do `OnDeath`.
-- **Arquivos já alterados:** o `EnemyAI.FixedUpdate` foi alterado no Bloco 6 (consulta a `IEnemySteering`). Se o Bloco 4 mexer no mesmo método, o conflito de merge fica restrito a esse trecho.
-- **Canvas da barra de HP:** use Sort Order maior que `-100` para ficar acima da tela PSX.
+O **Bloco 4** implementa `IDamageable.ApplyDamageServer` em `HealthComponent`; projéteis atingem o contrato no servidor. A morte do Biomechanical chama `EnemyAI.ReturnToPoolServer()`, acionando o drop de XP existente. Inimigos causam 8 de dano de contato por segundo quando próximos; o servidor decide vida, dano, morte e upgrades.
 
 Outras APIs públicas úteis:
 - **Jogador local:** `PlayerNetwork.LocalPlayer` e os eventos `OnLocalPlayerSpawned`/`OnLocalPlayerDespawned`, usados por câmera e HUDs.
@@ -94,14 +88,14 @@ Outras APIs públicas úteis:
   - `AutoAttackSystem.OnServerProjectileHit(GameObject, Vector3, float dano)` serve para números de dano;
   - `OnVolleyFired` e `OnProjectileImpact` servem para SFX/VFX;
   - `RequestWeapon(int)` troca a arma pelo servidor.
-- **Progressão:** `PlayerLevel.OnXpChanged(xp, necessário)`, `OnLevelUp(nível)` e o estático `OnAnyPlayerLevelUp(jogador, nível)`, que será a entrada da tela de Level Up.
+- **Progressão:** `PlayerLevel.OnXpChanged(xp, necessário)`, `OnLevelUp(nível)` e `OnAnyPlayerLevelUp`; o marco separado de 30 mortes globais abre upgrades individuais.
 - **Inimigos:** `EnemyAI.ActiveOnServer` (lista no servidor) e `EnemySpawner.OnEnemySpawned`.
 
 ## 6. Projeto Unity e arte
 
 Agora existem `Packages/`, `ProjectSettings/`, os `.meta`, Input Actions, configurações URP e os prefabs Player, BiomechanicalEnemy, Projectile, XpGem e os quatro visuais. A cena `Game` reúne os sistemas num chão de teste com NavMesh e dois pontos de spawn; `Characters` mostra os modelos para inspeção. Veja `Docs/ProjetoUnity.md`.
 
-**Papéis confirmados pelo usuário:** só Biomechanical Mutant é inimigo. Survivalist, Adventure Female e Gravemind Dreadnought são os três personagens selecionáveis. A seleção é validada no servidor e replicada, sem alterar os atributos/controlador. Materiais PSX, texturas Point limitadas a 256 pixels, escala ajustada e root motion desativado. Survivalist e Adventure Female usam animações humanoides do pacote Survivalist; Gravemind usa seus clipes próprios. O pacote Biomechanical não fornece animações de locomoção.
+**Papéis confirmados pelo usuário:** só Biomechanical Mutant é inimigo. Survivalist, Adventure Female e Gravemind Dreadnought são os três personagens selecionáveis. A seleção é validada no servidor e replicada, sem alterar os atributos/controlador. Materiais PSX, texturas Point limitadas a 256 pixels, escala ajustada e root motion desativado. Os três selecionáveis têm ciclos idle/run; o monstro agora usa o Animator humanoide com os clipes existentes. Armas estilizadas são anexadas à mão direita; magia e disparos balísticos têm cores, projéteis e rastros próprios.
 
 Os ZIPs originais permanecem localmente em `modelo-jogo/`; os arquivos grandes de geometria e textura em `Assets/_Project/Art/Models/Characters/**/Source/` também ficam apenas na máquina. ZIPs, FBX e texturas de origem estão ignorados pelo Git, mas não foram removidos. Uma instalação limpa precisa receber esses arquivos à parte para restaurar a arte. O importador `Tools/import_models.py` seleciona apenas arte das versões Unity e preserva GUIDs; os visuais adaptados ficam em `Prefabs/Characters/`.
 
@@ -109,27 +103,16 @@ Os ZIPs originais permanecem localmente em `modelo-jogo/`; os arquivos grandes d
 
 **Fluxo do Editor:** após cada mudança visível, feche graciosamente a instância anterior, aguarde a janela e o lock do projeto fecharem, e reabra apenas uma instância na cena atualizada. Use `Tools/unity.sh --reopen-game` para `Game`, `--reopen-preview` para `Characters`, ou `--reopen-play` para testar o menu; o launcher aborta se o lock continuar ativo. Alterações não visuais não exigem reinício.
 
-Ainda faltam o mapa definitivo, as animações do monstro e o Bloco 4. O protótipo pode ser aberto e iniciado como Host, mas ainda não há vida, dano efetivo ou morte dos inimigos por projéteis.
+O kit `Medieval Village & Dungeon Kit` v0.3.0 foi baixado para `modelo-jogo/MedievalVillageKit_Unity_0.3.0.zip` e extraído como pacote local em `Packages/com.danielgruginski.medievalkit/`. Tanto o ZIP quanto o pacote de 601 MB estão ignorados pelo Git para evitar adicionar centenas de megabytes ao repositório. Ele inclui `VK_ValleyTown` (216 × 168 m), `VK_Hamlet`, interiores, masmorras e cavernas, sob licença CC0. `VK_ValleyTown` foi integrado à cena `Game`: o piso de teste foi removido, o NavMesh pré-assado do pacote foi mantido, foram adicionados colliders estáticos às malhas e os dois spawns foram projetados no NavMesh. A cena precisa de inspeção visual e validação de desempenho/colisão em Play Mode. O kit tem estética medieval estilizada, foi feito para câmera top-down e não equivale a uma casa contemporânea. Vida, dano, morte e XP também precisam de validação em partida e co-op.
 
 ## 7. Como prosseguir (ordem recomendada)
 
 1. **Revisar e versionar a montagem local.** `Packages/`, `ProjectSettings/`, cenas, prefabs, Input Actions e `.meta` já foram criados. As alterações ainda não foram commitadas. Preserve os ZIPs originais e não versione caches/licenças/logs.
-2. **Inspecionar a arte na Unity.** Abra `Tools/unity.sh`, use **GameYunit → Projeto → Ver personagens** e confira materiais, escala e animações. Os testes dos Blocos 3, 5 e 6 já passaram; repita a suíte após mudanças relevantes.
-3. **Testar Host–Client em instâncias separadas.** A cena `Game` e seus prefabs já estão montados. Falta validar Host no Editor + Client numa build Linux de Development, incluindo seleção replicada, movimentação e câmera.
-4. **Integrar o Bloco 4** quando estiver pronto (contratos da §5). Depois, adicione no `README` os links para `Docs/Bloco5.md` e `Docs/Bloco6.md`; eles ficaram de fora para evitar conflito.
-5. **Importar o mapa**, nesta ordem:
-   1. GameYunit → PSX → Aplicar importação retrô (pasta do mapa);
-   2. GameYunit → Mapa → Preparar mapa selecionado;
-   3. GameYunit → PSX → Converter materiais;
-   4. GameYunit → Mapa → Configurar e assar NavMesh;
-   5. posicionar os `PlayerSpawnPoint`.
-6. **Continuar o menu** — primeira versão Coop/vídeo e seleções ligada à cena `Game` e conferida visualmente; falta testar os controles, validar a conexão Client e polir o fluxo. Efeitos de projéteis seguem pendentes — escopo em `Docs/Menu.md`;
-7. **Seguir para os próximos sistemas**:
-   - tela de Level Up com escolha de upgrades: os upgrades podem alterar os campos das `WeaponDefinition`, que já são combináveis;
-   - loop de partida: início, timer/ondas, game over e reinício;
-   - tela de seleção de arma que trava a escolha após o início;
-   - menu e lobby (IP do Host);
-   - áudio, VFX e balanceamento.
+2. **Validar a integração em Play Mode.** Conferir Host, dano, mortes/XP, contato, upgrades, pausa, armas na mão, animações e efeitos. Os testes automatizados ainda não foram executados nesta integração.
+3. **Testar Host–Client em instâncias separadas.** Falta validar seleção replicada, pausa e upgrades globais, movimento e HUD numa build Linux de Development.
+4. **Validar o mapa integrado** em `Game`: conferir visual, spawns, colisão dos jogadores e caminhos dos inimigos; medir o custo dos 5.344 colliders estáticos e simplificar se necessário.
+5. **Polir o menu e ajustar o balanceamento** após os testes. A tela cheia e os VFX estão ligados ao fluxo atual.
+6. **Seguir para os próximos sistemas:** fim de partida/reinício, seleção de arma travada durante a partida e áudio.
 
 ## 8. Decisões
 
@@ -139,14 +122,15 @@ Tomadas:
 - **Spawn de inimigos:** fluxo contínuo, como ponto de partida.
 - **Armas:** as três ficam disponíveis como arma inicial. Todas miram o inimigo mais próximo e só disparam com inimigo no raio.
 - **XP:** individual por jogador. Acima de 300 gemas ativas, o XP é somado à gema mais antiga.
+- **Pausa:** `Esc` alterna uma pausa global replicada; upgrades são individuais e a partida retoma quando todos os jogadores conectados escolhem. Desconexões são retiradas da fila.
+- **Melhorias:** a cada 30 mortes globais, cada jogador escolhe +5% de dano, +5% de vida máxima ou cura completa.
+- **Armas e VFX:** armas baixas em polígonos ficam presas à mão; efeitos locais de disparo e impacto são reaproveitados pelo pool.
 - **NavMesh:** consultas de caminho (`NavMesh.CalculatePath`) em vez de `NavMeshAgent`, para manter o `CharacterController` e a replicação.
 - **Menus:** Coop (criar/entrar), vídeo, mapa (um por enquanto), seleção de personagem/arma inicial e projéteis com efeitos de disparo/rastro/impacto. A primeira versão de Coop/vídeo está em `Docs/Menu.md`; VFX e validação em Play Mode continuam pendentes.
 
-Pendentes (aguardando o responsável pelo projeto):
-- **Bloco 4:** morte direta ao pool ou com feedback antes; números de dano; dano de contato com invulnerabilidade ou golpe com recarga.
-- **Tela de Level Up:** pausa global (lógica, no servidor), UI sobreposta em tempo real ou híbrido (câmera lenta + fila).
-- **Formato do mapa:** arena fechada, treadmill infinito ou arena com bordas que se repetem.
-- **Spawn de inimigos:** manter o fluxo contínuo, trocar para ondas ou usar fluxo contínuo com picos.
+Pendentes:
+- **Mapa:** `VK_ValleyTown` está aplicado à cena `Game`; validar visualmente e em Play Mode. A solicitação anterior de uma casa contemporânea continua sem asset correspondente.
+- **Validação Host–Client e balanceamento:** as mecânicas novas foram compiladas, mas ainda não testadas em partida.
 
 ## 9. Limitações conhecidas
 

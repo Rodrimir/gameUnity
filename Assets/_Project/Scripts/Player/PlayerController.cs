@@ -65,7 +65,9 @@ namespace GameYunit.Player
 
         private void FixedUpdate()
         {
-            if (!IsSpawned || !IsServer || !_characterController.enabled)
+            if (!IsSpawned || !IsServer || !_characterController.enabled ||
+                GameYunit.Gameplay.GameSessionController.IsPaused ||
+                GetComponent<GameYunit.Combat.HealthComponent>() is { IsAlive: false })
             {
                 return;
             }

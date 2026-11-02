@@ -14,6 +14,7 @@ namespace GameYunit.Combat
     [CreateAssetMenu(menuName = "GameYunit/Combat/Weapon Definition", fileName = "Weapon_")]
     public sealed class WeaponDefinition : ScriptableObject
     {
+        public enum ProjectileStyle { ArcaneLightning, Bullet, PiercingBolt }
         public enum AimMode
         {
             /// <summary>Mira o inimigo mais próximo dentro do raio.</summary>
@@ -38,6 +39,7 @@ namespace GameYunit.Combat
         [SerializeField, Min(0.5f)] private float _attackRadius = 12f;
 
         [SerializeField] private AimMode _aim = AimMode.NearestEnemy;
+        [SerializeField] private ProjectileStyle _visualStyle = ProjectileStyle.Bullet;
 
         [Header("Projétil")]
         [SerializeField, Min(0f)] private float _damage = 10f;
@@ -71,6 +73,7 @@ namespace GameYunit.Combat
         public float FireInterval => _fireInterval;
         public float AttackRadius => _attackRadius;
         public AimMode Aim => _aim;
+        public ProjectileStyle VisualStyle => _visualStyle;
         public float Damage => _damage;
         public float ProjectileSpeed => _projectileSpeed;
         public float ProjectileLifetime => _projectileLifetime;

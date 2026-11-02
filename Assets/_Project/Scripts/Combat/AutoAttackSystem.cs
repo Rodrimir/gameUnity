@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GameYunit.Characters;
 using GameYunit.Core.Pooling;
 using GameYunit.Enemies;
 using Unity.Netcode;
@@ -52,6 +53,7 @@ namespace GameYunit.Combat
         private float _nextFireTime;
         private uint _nextShotId;
         private bool _ready;
+        private CharacterWeaponVisual _weaponVisual;
 
         /// <summary>Arma escolhida no menu local antes de entrar na sessão.</summary>
         public static int PreferredStartingWeaponIndex { get; set; }
@@ -89,6 +91,12 @@ namespace GameYunit.Combat
         public override void OnNetworkSpawn()
         {
             base.OnNetworkSpawn();
+            _weaponVisual = GetComponent<CharacterWeaponVisual>();
+            if (_weaponVisual == null) _weaponVisual = gameObject.AddComponent<CharacterWeaponVisual>();
+            _weaponVisual.Initialize(this);
+            WeaponImpactVfx impactVfx = GetComponent<WeaponImpactVfx>();
+            if (impactVfx == null) impactVfx = gameObject.AddComponent<WeaponImpactVfx>();
+            impactVfx.Bind(this);
 
             if (IsServer)
             {
@@ -175,7 +183,8 @@ namespace GameYunit.Combat
 
         private void Update()
         {
-            if (!_ready || !IsSpawned || !IsServer || Time.time < _nextFireTime)
+            if (!_ready || !IsSpawned || !IsServer || GameYunit.Gameplay.GameSessionController.IsPaused ||
+                GetComponent<HealthComponent>() is { IsAlive: false } || Time.time < _nextFireTime)
             {
                 return;
             }
@@ -357,9 +366,12 @@ namespace GameYunit.Combat
                     Lifetime = volley.Lifetime,
                     HomingTurnRate = volley.HomingTurnRate,
                     Target = target,
-                    Damage = weapon != null ? weapon.Damage : 0f,
+                    Damage = weapon != null ? weapon.Damage * (GetComponent<HealthComponent>() != null ? GetComponent<HealthComponent>().DamageMultiplier : 1f) : 0f,
                     PierceCount = weapon != null ? weapon.PierceCount : 0,
-                    PierceDamageFalloff = weapon != null ? weapon.PierceDamageFalloff : 1f
+                    PierceDamageFalloff = weapon != null ? weapon.PierceDamageFalloff : 1f,
+                    Style = (weapon ?? GetWeapon(volley.WeaponIndex)) != null
+                        ? (weapon ?? GetWeapon(volley.WeaponIndex)).VisualStyle
+                        : WeaponDefinition.ProjectileStyle.Bullet
                 };
 
                 uint shotId = volley.FirstId + (uint)i;

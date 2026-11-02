@@ -1,0 +1,27 @@
+Medieval Village Kit - Unity package
+====================================
+
+Needs Unity 6 (6000.3 or newer) with URP 17.3, i.e. a project made from the "Universal 3D"
+template. Older Unity versions and the built-in render pipeline are not supported.
+
+Install
+1. Unzip so that you get  <YourProject>/Packages/com.danielgruginski.medievalkit/package.json
+   (or unzip it anywhere and use Window > Package Manager > + > Install package from disk...,
+   then pick that package.json).
+2. Let Unity import it. About 1,470 models and 300 textures: the first import takes a while.
+   Unity adds the Input System and Newtonsoft JSON packages if they are missing.
+3. Run Tools > Medieval Kit > Install AgX Renderer Feature. The level scenes were colour-graded
+   with it; without it they render with different colours than the screenshots.
+4. Open a level from Packages > Medieval Village Kit > Generated > Levels, for example
+   VK_ValleyTown, VK_Hamlet, VKI_Tavern_F0, VKI_Dungeon_B2, VKI_Cave_Falls, VKI_Dwarf_Hall or VKI_Mine_M1.
+
+Pieces: Generated/Prefabs (one prefab per piece) and Art/Models (the FBX files).
+Walk the example world: Tools > Medieval Kit > Play From Start Level (click to walk, click a door to go
+through). Open VK_Hamlet and use Tools > Medieval Kit > Walk This Level to see the walls and roofs
+open around the walker as it goes behind a house.
+The camera, the see-through, click to move and the hooks a game fills: Documentation~/MANUAL.md
+Building your own rooms, caves, dungeons and chained maps: Documentation~/LEVEL_BUILDING.md
+(Unity hides folders ending in "~", so open these files from Explorer/Finder).
+
+Source and issues: https://github.com/danielgruginski/MedievalVillageKit
+Licence: CC0 1.0 (see LICENSE.md).

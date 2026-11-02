@@ -18,6 +18,7 @@ MonoBehaviour:
   _fireInterval: 1.0
   _attackRadius: 10
   _aim: 0
+  _visualStyle: 1
   _damage: 6
   _projectileSpeed: 18
   _projectileLifetime: 0.8
