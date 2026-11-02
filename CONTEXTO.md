@@ -2,7 +2,7 @@
 
 Documento de entrada para quem chega ao projeto, seja uma pessoa da equipe ou um assistente de IA iniciando uma nova sessão. Resume o que existe, como está organizado, o que ainda não foi validado e como continuar. Os detalhes de cada bloco ficam em `Docs/BlocoN.md`; o roteiro original (prompts) está em `PROMPTS.md`.
 
-*Atualizado em 02/11/2026, após o commit `6a34653` (Blocos 5 e 6).*
+*Atualizado em 02/11/2026, após montar o protótipo, adaptar os personagens e aprovar 25 testes. A primeira versão do menu Coop/vídeo foi conectada à cena `Game`, mas ainda não foi validada em Play Mode. Alterações locais não commitadas.*
 
 ## 1. O jogo
 
@@ -35,12 +35,14 @@ Bullet heaven / survivors-like 3D em terceira pessoa (câmera top-down angular),
 | 0 — Fundação | Pastas, `NetworkManagerSetup` (Host/Client, aprovação com máx. 2), `ObjectPoolManager`, `PlayerNetwork` | ✅ Compilado e testado |
 | 1 — Movimento/câmera | `PlayerController` (CharacterController no servidor), `CameraController` (só o jogador local), mira independente mouse/analógico (`PlayerAimInput`) | ✅ Compilado; 11 testes EditMode passaram |
 | 2 — Hordas | `EnemySpawner` (fluxo contínuo, 3/s, até 128, anel 12–18 m), `EnemyAI` (persegue o jogador mais próximo), `NetworkObjectPool` | ✅ Compilado; 12 testes passaram (com sessão Host real) |
-| 3 — Ataque automático | `AutoAttackSystem`, `Projectile`, `ProjectileVolley`, `IDamageable`; 3 armas iniciais em `WeaponDefinition` (Varinha teleguiada, Leque de 5, Perfurante); preparo de mapa (`MapSetupTool`, `PlayerSpawnPoint`, spawn de inimigos apoiado no chão) | ⚠️ **Não compilado** |
+| 3 — Ataque automático | `AutoAttackSystem`, `Projectile`, `ProjectileVolley`, `IDamageable`; 3 armas iniciais em `WeaponDefinition` (Varinha teleguiada, Leque de 5, Perfurante); preparo de mapa (`MapSetupTool`, `PlayerSpawnPoint`, spawn de inimigos apoiado no chão) | ✅ Compilado; 5 testes de combate passaram |
 | 4 — Vida/dano/morte | `HealthComponent`, `OnDeath`, barra de HP | 🔧 **Em desenvolvimento por outra pessoa**; nada no repositório ainda |
-| 5 — XP e níveis | `XpDropper`, `XpDropService`, `XpGem`, `PlayerLevel` (XP individual, curva 5 + 5×(N−1)) | ⚠️ **Não compilado**; feito só com arquivos novos |
-| 6 — Mapa/NavMesh/PSX | `PsxRenderTextureSetup` (320x240, Point, letterbox), shader `GameYunit/PSX Lit` (snap + afim + Gouraud), regras de importação retrô, `NavMeshSetupTool`, `NavMeshSteering` | ⚠️ **Não compilado** (shader incluso) |
+| 5 — XP e níveis | `XpDropper`, `XpDropService`, `XpGem`, `PlayerLevel` (XP individual, curva 5 + 5×(N−1)) | ✅ Compilado; 3 testes de progressão passaram |
+| 6 — Mapa/NavMesh/PSX | `PsxRenderTextureSetup` (320x240, Point, letterbox), shader `GameYunit/PSX Lit` (snap + afim + Gouraud), regras de importação retrô, `NavMeshSetupTool`, `NavMeshSteering` | ✅ Compilado; 4 testes de mapa/renderização passaram |
+| Personagens e cena | Biomechanical como inimigo; Survivalist, Adventure Female e Gravemind selecionáveis; `PlayerAppearance`, prefabs e cenas `Game`/`Characters` | ✅ Teste da cena real: Host, seleção dos três personagens e spawn do monstro |
+| Menu Coop e vídeo | `MainMenuHUD`, IP do Host, escolhas iniciais, resolução de saída e parâmetros PSX | 🟡 Painel inteiro conferido visualmente em Play Mode; cliques e fluxo Client ainda pendentes |
 
-"Compilado e testado" vale para a instalação Unity 6000.3.27f2 + NGO 2.13.3 descrita em `Docs/Bloco1.md` e `Docs/Bloco2.md`. Os Blocos 3, 5 e 6 foram escritos numa máquina sem Unity e têm testes prontos que **nunca foram executados**.
+"Compilado e testado" vale para Unity 6000.3.27f2 + NGO 2.13.3. A montagem anterior ao menu teve **25 testes aprovados**, com gráficos habilitados na RTX 3060, incluindo sessões Host reais e a cena `Game`. O menu foi conferido visualmente em Play Mode; seus controles ainda não foram testados interativamente. O teste de renderização corrigiu a limpeza para destruir a câmera antes da RenderTexture. Resultados locais em `Logs/TestResults.xml`; execução reproduzível por `Tools/unity.sh --verify-and-open`. Uma instância Client separada ainda precisa de teste manual.
 
 ## 4. Organização do código
 
@@ -95,23 +97,25 @@ Outras APIs públicas úteis:
 - **Progressão:** `PlayerLevel.OnXpChanged(xp, necessário)`, `OnLevelUp(nível)` e o estático `OnAnyPlayerLevelUp(jogador, nível)`, que será a entrada da tela de Level Up.
 - **Inimigos:** `EnemyAI.ActiveOnServer` (lista no servidor) e `EnemySpawner.OnEnemySpawned`.
 
-## 6. O que ainda não existe no repositório
+## 6. Projeto Unity e arte
 
-O repositório tem **apenas scripts, shader, assets de dados e docs**. Ainda não há:
-- `Packages/` e `ProjectSettings/` (projeto Unity versionado);
-- cenas, prefabs (Player, Enemy, Projectile, XpGem) e o asset de Input Actions;
-- o mapa que será usado na cena inicial (foi combinado colá-lo em `Assets/`);
-- o Bloco 4.
+Agora existem `Packages/`, `ProjectSettings/`, os `.meta`, Input Actions, configurações URP e os prefabs Player, BiomechanicalEnemy, Projectile, XpGem e os quatro visuais. A cena `Game` reúne os sistemas num chão de teste com NavMesh e dois pontos de spawn; `Characters` mostra os modelos para inspeção. Veja `Docs/ProjetoUnity.md`.
 
-Por isso **nada é jogável direto do clone**: cada `Docs/BlocoN.md` descreve como montar a sua parte na Unity.
+**Papéis confirmados pelo usuário:** só Biomechanical Mutant é inimigo. Survivalist, Adventure Female e Gravemind Dreadnought são os três personagens selecionáveis. A seleção é validada no servidor e replicada, sem alterar os atributos/controlador. Materiais PSX, texturas Point limitadas a 256 pixels, escala ajustada e root motion desativado. Survivalist e Adventure Female usam animações humanoides do pacote Survivalist; Gravemind usa seus clipes próprios. O pacote Biomechanical não fornece animações de locomoção.
 
-Pacotes necessários: Netcode for GameObjects, Unity Transport, Input System (Active Input Handling = *New* ou *Both*), URP, uGUI, **AI Navigation** (Bloco 6), Unity Test Framework e Input System Test Framework (testes). Ative também **Run In Background**.
+Os ZIPs originais permanecem localmente em `modelo-jogo/`; os arquivos grandes de geometria e textura em `Assets/_Project/Art/Models/Characters/**/Source/` também ficam apenas na máquina. ZIPs, FBX e texturas de origem estão ignorados pelo Git, mas não foram removidos. Uma instalação limpa precisa receber esses arquivos à parte para restaurar a arte. O importador `Tools/import_models.py` seleciona apenas arte das versões Unity e preserva GUIDs; os visuais adaptados ficam em `Prefabs/Characters/`.
+
+**Restrição do usuário:** nenhum download, extração, cache, build, log ou temporário fora desta raiz. Execute a Unity por `Tools/unity.sh`: ele lê o Editor já instalado e restringe gravações ao projeto; `.unity/`, `Library/`, `Temp/` e `Logs/` são ignorados pelo Git. Não use o launcher global da Unity nem projetos temporários externos.
+
+**Fluxo do Editor:** após cada mudança visível, feche graciosamente a instância anterior, aguarde a janela e o lock do projeto fecharem, e reabra apenas uma instância na cena atualizada. Use `Tools/unity.sh --reopen-game` para `Game`, `--reopen-preview` para `Characters`, ou `--reopen-play` para testar o menu; o launcher aborta se o lock continuar ativo. Alterações não visuais não exigem reinício.
+
+Ainda faltam o mapa definitivo, as animações do monstro e o Bloco 4. O protótipo pode ser aberto e iniciado como Host, mas ainda não há vida, dano efetivo ou morte dos inimigos por projéteis.
 
 ## 7. Como prosseguir (ordem recomendada)
 
-1. **Versionar o projeto Unity.** Crie um projeto URP 3D na 6000.3.27f2, incorpore `Assets/_Project` e commite `Packages/`, `ProjectSettings/` e todos os `.meta` gerados. Sem isso, cada pessoa monta cenas e prefabs diferentes.
-2. **Compilar e rodar os testes** (Test Runner → EditMode) e corrigir o que falhar nos Blocos 3, 5 e 6, a começar pelo shader e pelos testes de sessão Host. Atualize o "Estado" de cada `Docs/BlocoN.md` com o resultado.
-3. **Montar a cena `Game` e os prefabs**, seguindo `Docs/Bloco1.md` → `Bloco2` → `Bloco3` → `Bloco5` → `Bloco6`, e commitar cena, prefabs e Input Actions. Teste Host no Editor + Client numa build Linux de Development.
+1. **Revisar e versionar a montagem local.** `Packages/`, `ProjectSettings/`, cenas, prefabs, Input Actions e `.meta` já foram criados. As alterações ainda não foram commitadas. Preserve os ZIPs originais e não versione caches/licenças/logs.
+2. **Inspecionar a arte na Unity.** Abra `Tools/unity.sh`, use **GameYunit → Projeto → Ver personagens** e confira materiais, escala e animações. Os testes dos Blocos 3, 5 e 6 já passaram; repita a suíte após mudanças relevantes.
+3. **Testar Host–Client em instâncias separadas.** A cena `Game` e seus prefabs já estão montados. Falta validar Host no Editor + Client numa build Linux de Development, incluindo seleção replicada, movimentação e câmera.
 4. **Integrar o Bloco 4** quando estiver pronto (contratos da §5). Depois, adicione no `README` os links para `Docs/Bloco5.md` e `Docs/Bloco6.md`; eles ficaram de fora para evitar conflito.
 5. **Importar o mapa**, nesta ordem:
    1. GameYunit → PSX → Aplicar importação retrô (pasta do mapa);
@@ -119,7 +123,8 @@ Pacotes necessários: Netcode for GameObjects, Unity Transport, Input System (Ac
    3. GameYunit → PSX → Converter materiais;
    4. GameYunit → Mapa → Configurar e assar NavMesh;
    5. posicionar os `PlayerSpawnPoint`.
-6. **Tomar as decisões pendentes** (§8) e seguir para os próximos sistemas:
+6. **Continuar o menu** — primeira versão Coop/vídeo e seleções ligada à cena `Game` e conferida visualmente; falta testar os controles, validar a conexão Client e polir o fluxo. Efeitos de projéteis seguem pendentes — escopo em `Docs/Menu.md`;
+7. **Seguir para os próximos sistemas**:
    - tela de Level Up com escolha de upgrades: os upgrades podem alterar os campos das `WeaponDefinition`, que já são combináveis;
    - loop de partida: início, timer/ondas, game over e reinício;
    - tela de seleção de arma que trava a escolha após o início;
@@ -135,6 +140,7 @@ Tomadas:
 - **Armas:** as três ficam disponíveis como arma inicial. Todas miram o inimigo mais próximo e só disparam com inimigo no raio.
 - **XP:** individual por jogador. Acima de 300 gemas ativas, o XP é somado à gema mais antiga.
 - **NavMesh:** consultas de caminho (`NavMesh.CalculatePath`) em vez de `NavMeshAgent`, para manter o `CharacterController` e a replicação.
+- **Menus:** Coop (criar/entrar), vídeo, mapa (um por enquanto), seleção de personagem/arma inicial e projéteis com efeitos de disparo/rastro/impacto. A primeira versão de Coop/vídeo está em `Docs/Menu.md`; VFX e validação em Play Mode continuam pendentes.
 
 Pendentes (aguardando o responsável pelo projeto):
 - **Bloco 4:** morte direta ao pool ou com feedback antes; números de dano; dano de contato com invulnerabilidade ou golpe com recarga.

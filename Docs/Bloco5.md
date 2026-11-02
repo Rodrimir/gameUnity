@@ -38,7 +38,7 @@ Se o Bloco 4 adotar outro caminho de morte (ou se surgirem despawns que não sã
 - **Drop e coleta:** o despawn do inimigo no servidor gera uma gema de valor 3, 0,5 m acima da posição de morte. Ao mover o `CharacterController` do jogador até ela, o XP sobe para 3 e a gema volta ao pool.
 - **Teto de gemas:** com `Max Active Gems = 1`, dois drops resultam em uma única gema de valor 6.
 
-**Estado:** estes scripts **ainda não foram compilados nem executados**. A máquina em que foram escritos não tem Unity. Rode o Test Runner (EditMode) na instalação 6000.3.27f2.
+**Estado (02/11/2026):** scripts compilados na Unity 6000.3.27f2; os **3 testes de progressão passaram**, dentro da suíte atual de **25 testes aprovados**. Os prefabs e a cena estão montados; veja [Projeto Unity e personagens](ProjetoUnity.md). A integração com a morte real aguarda o Bloco 4.
 
 Teste manual Host (Editor) + Client (build Linux), após o Bloco 4 ou chamando `ReturnToPoolServer()` em inimigos:
 

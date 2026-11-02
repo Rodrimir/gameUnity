@@ -79,6 +79,27 @@ namespace GameYunit.Network
 
         public int MaxPlayers => _maxPlayers;
 
+        /// <summary>Atualiza os dados de conexão antes de iniciar a sessão.</summary>
+        public void ConfigureConnection(string address, ushort port, bool host)
+        {
+            if (IsRunning)
+            {
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(address))
+            {
+                _connectAddress = address.Trim();
+            }
+
+            if (port != 0)
+            {
+                _port = port;
+            }
+
+            _listenAddress = host ? "0.0.0.0" : _listenAddress;
+        }
+
         #region Unity Lifecycle
 
         private void Awake()

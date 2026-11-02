@@ -1,0 +1,14 @@
+{
+  "model": "Biomechanical",
+  "archive": "biomechanical mutant.zip",
+  "package": "Biomech_Mutant.unitypackage",
+  "files": [
+    "Assets/Biomechanical_Mutant/Prefabs/Biomech_Mutant_Skin_1.prefab",
+    "Assets/Biomechanical_Mutant/Textures/Skin_1/T_Biomech_Mutant_Skin_1_Bottom_a.png",
+    "Assets/Biomechanical_Mutant/Mesh/SK_Bio_Mutant.fbx",
+    "Assets/Biomechanical_Mutant/Materials/M_BM_Skin_1_Top.mat",
+    "Assets/Biomechanical_Mutant/Materials/M_BM_Skin_1_Bottom.mat",
+    "Assets/Biomechanical_Mutant/Textures/Skin_1/T_Biomech_Mutant_Skin_1_Top_a.png"
+  ],
+  "note": "Arte importada sem scripts, cenas ou controladores de gameplay dos fornecedores. ZIP original preservado. GUIDs originais mantidos."
+}

@@ -61,7 +61,7 @@ O mapa a ser usado na cena inicial ainda não foi adicionado ao repositório. Pa
 - **Teleguiado:** disparando para a frente com o alvo a 90°, o projétil faz a curva e acerta.
 - **Seleção:** o Owner troca de arma pelo servidor; índice inválido é recusado.
 
-**Estado:** estes scripts **ainda não foram compilados nem executados**. A máquina em que foram escritos não tem Unity. Rode o Test Runner (EditMode) na instalação 6000.3.27f2 antes do teste manual.
+**Estado (02/11/2026):** scripts compilados na Unity 6000.3.27f2; os **5 testes de combate passaram**, dentro da suíte atual de **25 testes aprovados**. Cena e prefabs montados nesta raiz; veja [Projeto Unity e personagens](ProjetoUnity.md). O teste manual Host–Client em instâncias separadas continua pendente.
 
 Teste manual Host (Editor) + Client (build Linux):
 

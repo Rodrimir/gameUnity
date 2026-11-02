@@ -1,0 +1,14 @@
+{
+  "model": "AdventureFemale",
+  "archive": "adventure female free.zip",
+  "package": "Adventure_woman/Project_Unity/Adventures_woman/Unitypackage.unitypackage",
+  "files": [
+    "Assets/Adventures_woman/Materials/Adventures_woman_hair_01.mat",
+    "Assets/Adventures_woman/Materials/Adventures_woman_01.mat",
+    "Assets/Adventures_woman/Textures/Character_Clothes/T_Adventures woman_Albedo_01.tga",
+    "Assets/Adventures_woman/Mesh/Adventures_woman.FBX",
+    "Assets/Adventures_woman/Prefabs/Adventures_woman_01.prefab",
+    "Assets/Adventures_woman/Textures/Hair/T_Adventures woman_Hair_Albedo_01.tga"
+  ],
+  "note": "Arte importada sem scripts, cenas ou controladores de gameplay dos fornecedores. ZIP original preservado. GUIDs originais mantidos."
+}

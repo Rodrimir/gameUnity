@@ -3,6 +3,7 @@
     "rootNamespace": "GameYunit",
     "references": [
         "GameYunit.Core",
+        "GameYunit.Rendering",
         "Unity.Netcode.Runtime",
         "Unity.Networking.Transport",
         "Unity.Collections",

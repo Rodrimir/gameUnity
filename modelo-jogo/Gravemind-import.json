@@ -1,0 +1,30 @@
+{
+  "model": "Gravemind",
+  "archive": "gravemind dreadnought.zip",
+  "package": "Gravemind.unitypackage",
+  "files": [
+    "Assets/MasterTOB/3d Gravemind/Materials/2.mat",
+    "Assets/MasterTOB/3d Gravemind/Gravemind.fbx",
+    "Assets/MasterTOB/3d Gravemind/2.bmp",
+    "Assets/MasterTOB/3d Gravemind/Materials/defaultMat_2D_View_1001.mat",
+    "Assets/MasterTOB/3d Gravemind/gun.fbx",
+    "Assets/MasterTOB/3d Gravemind/defaultMat_Gravemind1.png",
+    "Assets/MasterTOB/3d Gravemind/Image.png",
+    "Assets/MasterTOB/prefab/gun.prefab",
+    "Assets/MasterTOB/3d Gravemind/normal.png",
+    "Assets/MasterTOB/3d Gravemind/hay_ProtectNDrive.png",
+    "Assets/MasterTOB/animation/Walk/Walk_F.anim",
+    "Assets/MasterTOB/prefab/Gravemind.prefab",
+    "Assets/MasterTOB/3d Gravemind/defaultMat_2D1.png",
+    "Assets/MasterTOB/3d Gravemind/3.bmp",
+    "Assets/MasterTOB/Materials/GUI_1.png",
+    "Assets/MasterTOB/3d Gravemind/awe.png",
+    "Assets/MasterTOB/3d Gravemind/Image2.png",
+    "Assets/MasterTOB/3d Gravemind/Image1.png",
+    "Assets/MasterTOB/animation/Stand/Stand_idle2.anim",
+    "Assets/MasterTOB/3d Gravemind/defaultMat_2D_View_1001.png",
+    "Assets/MasterTOB/3d Gravemind/sdrg.bmp",
+    "Assets/MasterTOB/animation/New Animator Controller.controller"
+  ],
+  "note": "Arte importada sem scripts, cenas ou controladores de gameplay dos fornecedores. ZIP original preservado. GUIDs originais mantidos."
+}

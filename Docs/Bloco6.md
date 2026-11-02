@@ -63,7 +63,7 @@ Importação automática (`PsxAssetPostprocessor`):
 - **NavMesh:** com um NavMesh assado em runtime sobre um chão com uma parede de 6 m, o primeiro canto contorna a parede em vez de atravessá-la.
 - **Sem NavMesh:** a navegação devolve o próprio destino.
 
-**Estado:** estes scripts e o shader **ainda não foram compilados nem executados**. A máquina em que foram escritos não tem Unity. Abra o projeto na 6000.3.27f2, confira o Console (shader incluso) e rode o Test Runner.
+**Estado (02/11/2026):** scripts e shader compilados na Unity 6000.3.27f2, com gráficos habilitados (RTX 3060). Os **4 testes de mapa/renderização passaram**, dentro da suíte atual de **25 testes aprovados**. Corrigida a limpeza do teste: câmera liberada antes da RenderTexture. A cena `Game` inclui NavMesh e tela PSX; veja [Projeto Unity e personagens](ProjetoUnity.md). A inspeção artística e o teste Host–Client separado complementam os testes automáticos.
 
 Teste manual:
 - **Tela:** com `PsxRenderTextureSetup` na câmera, a imagem fica pixelada (Point), em 4:3 com letterbox. Redimensione a janela; com *Match Screen Aspect*, as faixas somem.

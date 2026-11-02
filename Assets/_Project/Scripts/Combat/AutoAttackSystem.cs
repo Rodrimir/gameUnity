@@ -53,6 +53,12 @@ namespace GameYunit.Combat
         private uint _nextShotId;
         private bool _ready;
 
+        /// <summary>Arma escolhida no menu local antes de entrar na sessão.</summary>
+        public static int PreferredStartingWeaponIndex { get; set; }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetPreferredStartingWeapon() => PreferredStartingWeaponIndex = 0;
+
         #region Eventos (Observer)
 
         /// <summary>Arma equipada mudou (todos os peers). Use para HUD/ícone da arma.</summary>
@@ -86,7 +92,8 @@ namespace GameYunit.Combat
 
             if (IsServer)
             {
-                _weaponIndex.Value = Mathf.Clamp(_startingWeaponIndex, 0, Mathf.Max(0, _weapons.Length - 1));
+                int preferred = IsOwner ? PreferredStartingWeaponIndex : _startingWeaponIndex;
+                _weaponIndex.Value = Mathf.Clamp(preferred, 0, Mathf.Max(0, _weapons.Length - 1));
                 // Dispara assim que houver alvo; a cadência conta a partir do primeiro disparo.
                 _nextFireTime = Time.time;
                 _nextShotId = 0;
@@ -114,6 +121,12 @@ namespace GameYunit.Combat
             }
 
             OnWeaponChanged?.Invoke(CurrentWeapon);
+
+            if (IsClient && IsOwner && PreferredStartingWeaponIndex >= 0 &&
+                PreferredStartingWeaponIndex < _weapons.Length && PreferredStartingWeaponIndex != CurrentWeaponIndex)
+            {
+                RequestWeapon(PreferredStartingWeaponIndex);
+            }
         }
 
         public override void OnNetworkDespawn()

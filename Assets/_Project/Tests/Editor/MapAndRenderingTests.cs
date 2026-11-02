@@ -20,11 +20,14 @@ namespace GameYunit.Tests
                 NavMesh.RemoveNavMeshData(_navMesh);
             }
 
-            foreach (Object created in _created)
+            // A câmera deve ser destruída antes da RenderTexture que ainda está associada a ela.
+            for (int i = _created.Count - 1; i >= 0; i--)
             {
+                Object created = _created[i];
                 if (created is Camera camera)
                 {
                     CameraViewportMapping.Clear(camera);
+                    camera.targetTexture = null;
                 }
 
                 if (created != null)

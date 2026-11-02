@@ -59,6 +59,21 @@ namespace GameYunit.Rendering
             ? new Vector2Int(_renderTexture.width, _renderTexture.height)
             : _resolution;
 
+        public bool VertexSnapping => _vertexSnapping;
+        public float AffineStrength => _affineStrength;
+
+        public void ConfigureRuntime(Vector2Int resolution, bool vertexSnapping, float affineStrength)
+        {
+            _resolution = Vector2Int.Max(resolution, new Vector2Int(16, 16));
+            _matchScreenAspect = false;
+            _vertexSnapping = vertexSnapping;
+            _affineStrength = Mathf.Clamp01(affineStrength);
+            if (_camera != null && isActiveAndEnabled)
+            {
+                RebuildRenderTexture();
+            }
+        }
+
         private void OnEnable()
         {
             _camera = GetComponent<Camera>();

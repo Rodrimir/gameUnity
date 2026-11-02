@@ -14,7 +14,7 @@ O client transmite duas intenções `Vector2`: movimento e mira no plano XZ. Vel
 
 ## Setup na Unity (CachyOS/Linux)
 
-O repositório contém scripts e pastas de assets; ainda não contém `Packages`, `ProjectSettings`, cenas ou prefabs configurados. Crie um projeto 3D URP na Unity e incorpore `Assets/_Project` ou inicialize o projeto nesta raiz. A instalação local identificada é Unity **6000.3.27f2 (6.3 LTS)**, acessível pelo atalho Unity Editor do sistema. Os scripts também usam APIs disponíveis na Unity 2022.3 com uma versão de NGO compatível.
+O projeto URP já foi montado nesta raiz, com `Packages`, `ProjectSettings`, Input Actions, cenas e prefabs configurados. Use `Tools/unity.sh` para manter caches e temporários dentro do projeto. A instalação é Unity **6000.3.27f2 (6.3 LTS)**. Veja [Projeto Unity e personagens](ProjetoUnity.md). As instruções abaixo documentam o setup dos componentes e servem de referência para alterações.
 
 1. Instale **Netcode for GameObjects**, **Unity Transport** e **Input System** pelo Package Manager. O código existente usa `[Rpc]`, disponível a partir do NGO 1.8; escolha uma versão compatível com seu Editor. Em **Player → Other Settings → Active Input Handling**, selecione **Input System Package (New)** ou **Both**. Ative **Run In Background** para que o Host continue simulando quando outra janela receber foco.
 2. Crie um asset de Input Actions em `Assets/_Project/Settings/Input`. Adicione a action `Player/Move`, tipo **Value**, controle **Vector2**. Configure um **2D Vector Composite** com W/S/A/D, outro com setas e um binding `<Gamepad>/leftStick`. Use o modo **Digital Normalized** nos composites. Atribua `Player/Move` ao campo **Move Action** do `PlayerNetwork`. Não é necessário adicionar o componente `PlayerInput`.

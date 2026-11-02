@@ -10,6 +10,7 @@
 /[Uu]ser[Ss]ettings/
 /[Mm]emoryCaptures/
 /[Rr]ecordings/
+/.unity/
 
 # Arquivos .meta DEVEM ser versionados (guardam GUIDs e import settings)
 !/[Aa]ssets/**/*.meta
@@ -51,6 +52,16 @@ crashlytics-build.properties
 *.app
 *.x86_64
 *.unitypackage
+
+# Model source archives stay local; imported Unity assets and provenance are versioned.
+/modelo-jogo/*.zip
+
+# Raw model geometry and source textures stay local, including FBX models.
+/Assets/_Project/Art/Models/Characters/**/Source/**/*.fbx
+/Assets/_Project/Art/Models/Characters/**/Source/**/*.FBX
+/Assets/_Project/Art/Models/Characters/**/Source/**/*.png
+/Assets/_Project/Art/Models/Characters/**/Source/**/*.tga
+/Assets/_Project/Art/Models/Characters/**/Source/**/*.bmp
 
 # ---------------------------------------------------------------------------
 # IDEs

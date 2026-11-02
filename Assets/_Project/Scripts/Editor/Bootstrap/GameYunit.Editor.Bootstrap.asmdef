@@ -1,0 +1,16 @@
+{
+  "name": "GameYunit.Editor.Bootstrap",
+  "rootNamespace": "GameYunit.Editor",
+  "references": [
+    "GameYunit.Core",
+    "GameYunit.Runtime",
+    "GameYunit.Rendering",
+    "Unity.Netcode.Runtime",
+    "Unity.InputSystem",
+    "Unity.AI.Navigation",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "Unity.RenderPipelines.Universal.Editor",
+    "Unity.RenderPipelines.Core.Runtime"
+  ],
+  "includePlatforms": ["Editor"]
+}
