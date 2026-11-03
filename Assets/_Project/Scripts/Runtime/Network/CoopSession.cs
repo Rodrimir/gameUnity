@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using GameYunit.Characters;
 using GameYunit.Spells;
 using Unity.Netcode;
 using Unity.Netcode.Transports.UTP;
@@ -21,6 +22,8 @@ namespace GameYunit.Network
         [SerializeField] private GameObject _playerPrefab;
         [Tooltip("Catálogo de magias; a ordem precisa ser idêntica nas duas máquinas.")]
         [SerializeField] private SpellCatalog _catalog;
+        [Tooltip("Catálogo de personagens; a ordem precisa ser idêntica nas duas máquinas.")]
+        [SerializeField] private CharacterCatalog _characters;
         [SerializeField] private GameObject[] _enemyPrefabs;
         private readonly Dictionary<ulong, Guest> _guests = new();
         private NetworkManager _manager;
@@ -35,11 +38,13 @@ namespace GameYunit.Network
             public string name;
             public int color;
             public int spell;
+            public int character;
             [NonSerialized] public int slot;
         }
 
         public NetworkManager Manager => _manager;
         public SpellCatalog Catalog => _catalog;
+        public CharacterCatalog Characters => _characters;
         public string Status { get; private set; } = "Crie uma sala ou entre pelo IP do parceiro.";
         public ConnectionProtocol Protocol { get; private set; }
         public string Address { get; private set; } = "127.0.0.1";
@@ -81,7 +86,7 @@ namespace GameYunit.Network
             SetLocalMenu(true);
         }
 
-        public bool StartSession(bool host, string address, string port, string playerName, int color, ConnectionProtocol protocol, int spell = 0)
+        public bool StartSession(bool host, string address, string port, string playerName, int color, ConnectionProtocol protocol, int spell = 0, int character = 0)
         {
             if (Busy) return false;
             if (!ConnectionRules.TryEndpoint(address, port, out string ip, out ushort parsedPort))
@@ -104,7 +109,8 @@ namespace GameYunit.Network
                 version = ConnectionRules.Version,
                 name = ConnectionRules.CleanName(playerName),
                 color = color,
-                spell = ConnectionRules.CleanSpell(spell, _catalog != null ? _catalog.Count : 0)
+                spell = ConnectionRules.CleanIndex(spell, _catalog != null ? _catalog.Count : 0),
+                character = ConnectionRules.CleanIndex(character, _characters != null ? _characters.Count : 0)
             };
             _manager.NetworkConfig.ConnectionData = Encoding.UTF8.GetBytes(JsonUtility.ToJson(guest));
             Status = host ? "Abrindo sala…" : $"Conectando a {Address}:{Port}…";
@@ -145,7 +151,8 @@ namespace GameYunit.Network
             response.Reason = rejection ?? "";
             if (!response.Approved) { Debug.Log($"[CoopSession] Conexão recusada: {response.Reason}"); return; }
             guest.name = ConnectionRules.CleanName(guest.name);
-            guest.spell = ConnectionRules.CleanSpell(guest.spell, _catalog != null ? _catalog.Count : 0);
+            guest.spell = ConnectionRules.CleanIndex(guest.spell, _catalog != null ? _catalog.Count : 0);
+            guest.character = ConnectionRules.CleanIndex(guest.character, _characters != null ? _characters.Count : 0);
             guest.slot = 0;
             foreach (var other in _guests.Values) if (other.slot == 0) guest.slot = 1;
             _guests[request.ClientNetworkId] = guest;
@@ -178,7 +185,7 @@ namespace GameYunit.Network
                 return;
             }
             var player = Instantiate(_playerPrefab, position, rotation);
-            player.GetComponent<NetworkPlayerIdentity>().InitializeServer(guest.name, guest.color, guest.slot, guest.spell);
+            player.GetComponent<NetworkPlayerIdentity>().InitializeServer(guest.name, guest.color, guest.slot, guest.spell, guest.character);
             player.GetComponent<NetworkObject>().SpawnAsPlayerObject(id, true);
             Debug.Log($"[CoopSession] Jogador {id} no ponto {guest.slot}: {position}.");
         }

@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9ca5a9dac3f0b8b9afac2177c263841, type: 3}
+  m_Name: ellen
+  m_EditorClassIdentifier: GameYunit.Runtime::GameYunit.Characters.CharacterDefinition
+  _id: ellen
+  _displayName: Ellen
+  _description: A exploradora original, na cor do jogador.
+  _portrait: {fileID: 0}
+  _tint: {r: 1, g: 1, b: 1, a: 1}
+  _bodyMaterial: {fileID: 0}
+  _headMaterial: {fileID: 0}
+  _hairMaterial: {fileID: 0}
+  _scale: 1
+  _bodyPrefab: {fileID: 0}

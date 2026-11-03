@@ -40,10 +40,11 @@ namespace GameYunit.Network
         }
 
         /// <summary>
-        /// Mantém a magia escolhida dentro do catálogo. Um índice fora da lista não derruba a conexão:
-        /// o jogador cai na primeira magia, porque recusar a entrada por isso seria pior que a correção.
+        /// Mantém uma escolha de catálogo (magia, personagem) dentro da lista. Um índice fora da lista não
+        /// derruba a conexão: cai na primeira opção, porque recusar a entrada por isso seria pior que a
+        /// correção — catálogos podem divergir entre máquinas por arte não importada.
         /// </summary>
-        public static int CleanSpell(int spellIndex, int catalogCount) =>
-            catalogCount <= 0 || spellIndex < 0 || spellIndex >= catalogCount ? 0 : spellIndex;
+        public static int CleanIndex(int index, int catalogCount) =>
+            catalogCount <= 0 || index < 0 || index >= catalogCount ? 0 : index;
     }
 }

@@ -1,5 +1,13 @@
 {
   "name": "GameYunit.Runtime",
   "rootNamespace": "GameYunit",
-  "references": ["GameYunit.Core", "Unity.Netcode.Runtime", "Unity.Collections", "UnityEngine.UI", "Unity.TextMeshPro"]
+  "references": [
+    "GameYunit.Core",
+    "Unity.Netcode.Runtime",
+    "Unity.Collections",
+    "UnityEngine.UI",
+    "Unity.TextMeshPro",
+    "Unity.RenderPipelines.Universal.Runtime",
+    "Unity.RenderPipelines.Core.Runtime"
+  ]
 }

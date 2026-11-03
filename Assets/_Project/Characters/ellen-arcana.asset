@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9ca5a9dac3f0b8b9afac2177c263841, type: 3}
+  m_Name: ellen-arcana
+  m_EditorClassIdentifier: GameYunit.Runtime::GameYunit.Characters.CharacterDefinition
+  _id: ellen-arcana
+  _displayName: Arcana
+  _description: Mais leve e um pouco mais baixa.
+  _portrait: {fileID: 0}
+  _tint: {r: 0.62, g: 0.45, b: 0.95, a: 1}
+  _bodyMaterial: {fileID: 2100000, guid: 46ba9be6c4545f148aeea969a1f0bc1b, type: 2}
+  _headMaterial: {fileID: 2100000, guid: 9ccf8b1016d42a84b953222267c693d9, type: 2}
+  _hairMaterial: {fileID: 2100000, guid: 3e3ab0a89c44e6f4aaeaae2f672efd6d, type: 2}
+  _scale: 0.94
+  _bodyPrefab: {fileID: 0}
