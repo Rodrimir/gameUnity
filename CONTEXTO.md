@@ -2,7 +2,7 @@
 
 Fonte da verdade do projeto: o que existe, **o que foi verificado e como**, as decisões e o próximo passo. Este arquivo registra só o que foi realmente executado e conferido. Plano completo: [Docs/Plano.md](Docs/Plano.md). Como rodar: [README.md](README.md).
 
-*Atualizado em 03/11/2026 — Fase 1 encerrada com aprovação do usuário; Fase 2 (co-op mínimo) autorizada e em implementação.*
+*Atualizado em 02/11/2026 — Fase 1 encerrada com aprovação do usuário; Fase 2 (co-op mínimo) autorizada e em implementação.*
 
 ## 1. O jogo
 Survivors-like 3D em **co-op para 2 jogadores**, Host–Client por IP direto: mesma máquina em `127.0.0.1` ou LAN com o Host em `0.0.0.0`. O jogo está sendo **refeito sobre o 3D Game Kit** da Unity (Asset Store, 1.9.5, Unity 6.3 + URP), usando dele a arte, as fases (Level1, depois Level2), a Ellen e os inimigos (Chomper na horda; Spitter e Grenadier como escalada).

@@ -50,6 +50,8 @@ namespace GameYunit.Tests
 
         [TestCase("Start")]
         [TestCase("Level1")]
+        [TestCase("CoopMenu")]
+        [TestCase("Level1_Coop")]
         public void ImportedSceneHasNoMissingScripts(string sceneName)
         {
             var previousSetup = EditorSceneManager.GetSceneManagerSetup();

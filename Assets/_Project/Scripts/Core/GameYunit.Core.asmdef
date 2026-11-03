@@ -1,0 +1,5 @@
+{
+  "name": "GameYunit.Core",
+  "rootNamespace": "GameYunit",
+  "noEngineReferences": true
+}

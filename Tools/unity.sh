@@ -176,6 +176,17 @@ if [[ "${1:-}" == --reopen || "${1:-}" == --reopen-game || "${1:-}" == --reopen-
 fi
 
 EDITOR_COMMAND=("$EDITOR_BIN")
+PLAYER_MODE=false
+if [[ "${1:-}" == --client ]]; then
+  shift
+  PLAYER_MODE=true
+  CLIENT_BIN="$PROJECT_DIR/Builds/Linux/GameYunit.x86_64"
+  if [[ ! -x "$CLIENT_BIN" ]]; then
+    echo "Cliente Linux ausente: use GameYunit → Build → Cliente Linux Development." >&2
+    exit 1
+  fi
+  EDITOR_COMMAND=("$CLIENT_BIN")
+fi
 if [[ "${1:-}" == --debug-startup ]]; then
   shift
   EDITOR_COMMAND=(gdb -nx -batch -iex "set debuginfod enabled off" \
@@ -256,12 +267,16 @@ if [[ -n "${XDG_RUNTIME_DIR:-}" && -d "$XDG_RUNTIME_DIR" ]]; then
 fi
 
 LOG_ARGS=(-logFile "$PROJECT_DIR/Logs/Editor.log")
+if [[ "$PLAYER_MODE" == true ]]; then LOG_ARGS=(-logFile "$PROJECT_DIR/Logs/Client.log"); fi
 for ARG in "$@"; do
   if [[ "$ARG" == -logFile ]]; then
     LOG_ARGS=()
     break
   fi
 done
+
+LAUNCH_ARGS=(-projectPath "$PROJECT_DIR" "${HUB_ARGS[@]}")
+if [[ "$PLAYER_MODE" == true ]]; then LAUNCH_ARGS=(); fi
 
 exec bwrap --new-session --ro-bind / / --dev-bind /dev /dev --proc /proc \
   --bind "$PROJECT_DIR" "$PROJECT_DIR" \
@@ -283,4 +298,4 @@ exec bwrap --new-session --ro-bind / / --dev-bind /dev /dev --proc /proc \
   --unsetenv WAYLAND_DISPLAY \
   --setenv XDG_SESSION_TYPE x11 \
   --chdir "$PROJECT_DIR" \
-  "${EDITOR_COMMAND[@]}" -projectPath "$PROJECT_DIR" "${HUB_ARGS[@]}" "${LOG_ARGS[@]}" "$@"
+  "${EDITOR_COMMAND[@]}" "${LAUNCH_ARGS[@]}" "${LOG_ARGS[@]}" "$@"

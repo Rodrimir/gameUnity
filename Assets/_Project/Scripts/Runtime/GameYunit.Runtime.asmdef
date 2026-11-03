@@ -1,0 +1,5 @@
+{
+  "name": "GameYunit.Runtime",
+  "rootNamespace": "GameYunit",
+  "references": ["GameYunit.Core", "Unity.Netcode.Runtime", "Unity.Collections", "UnityEngine.UI", "Unity.TextMeshPro"]
+}

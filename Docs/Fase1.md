@@ -1,6 +1,6 @@
 # Fase 1 — Importar e verificar o 3D Game Kit
 
-*Fase encerrada em 03/11/2026, após aprovação explícita do usuário. Preparação e três testes automáticos concluídos; single-player e preparação na máquina do Rodrigo avaliados e aprovados pelo usuário.*
+*Fase encerrada em 02/11/2026, após aprovação explícita do usuário. Preparação e três testes automáticos concluídos; single-player e preparação na máquina do Rodrigo avaliados e aprovados pelo usuário.*
 
 ## Preparação verificada
 

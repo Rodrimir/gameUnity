@@ -6,6 +6,12 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/_Project/Scenes/CoopMenu.unity
+    guid: eafffb4bfe3dddf2dbdedf551d91d7a0
+  - enabled: 1
+    path: Assets/_Project/Scenes/Level1_Coop.unity
+    guid: b67ecc304a284152a7b22fb2b47abf20
+  - enabled: 1
     path: Assets/_Project/Scenes/Start.unity
     guid: 95d704b8dd3f45a8b8a3a9ae4a2fb429
   - enabled: 1

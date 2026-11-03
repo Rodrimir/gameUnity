@@ -65,6 +65,8 @@ crashlytics-build.properties
 # Cópia local grande (~38,5 MiB): recriada a partir do kit pelo menu Preparar single-player.
 /Assets/_Project/Scenes/Level1.unity
 /Assets/_Project/Scenes/Level1.unity.meta
+/Assets/_Project/Scenes/Level1_Coop.unity
+/Assets/_Project/Scenes/Level1_Coop.unity.meta
 
 # Recursos essenciais do TMP: importados localmente do pacote que acompanha o uGUI.
 /Assets/TextMesh Pro/
