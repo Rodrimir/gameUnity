@@ -62,6 +62,14 @@ crashlytics-build.properties
 /Assets/3DGamekit/
 /Assets/3DGamekit.meta
 
+# Cópia local grande (~38,5 MiB): recriada a partir do kit pelo menu Preparar single-player.
+/Assets/_Project/Scenes/Level1.unity
+/Assets/_Project/Scenes/Level1.unity.meta
+
+# Recursos essenciais do TMP: importados localmente do pacote que acompanha o uGUI.
+/Assets/TextMesh Pro/
+/Assets/TextMesh Pro.meta
+
 # ---------------------------------------------------------------------------
 # Legado (projeto anterior ao 3D Game Kit): arquivos grandes ficam só local.
 # As regras com caminho antigo protegem máquinas que ainda não migraram;

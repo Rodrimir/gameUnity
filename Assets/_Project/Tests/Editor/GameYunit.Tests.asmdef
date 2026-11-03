@@ -1,0 +1,8 @@
+{
+  "name": "GameYunit.Tests",
+  "rootNamespace": "GameYunit.Tests",
+  "references": ["UnityEngine.UI", "Unity.TextMeshPro"],
+  "includePlatforms": ["Editor"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "autoReferenced": false
+}

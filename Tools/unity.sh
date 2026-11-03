@@ -45,6 +45,7 @@ if [[ "${1:-}" == --print-paths ]]; then
   echo "Temporários:        $LOCAL_DIR/tmp"
   echo "Logs:               $PROJECT_DIR/Logs"
   echo "wmctrl:             $(type -P wmctrl || echo 'não instalado (--reopen-*, --close-editor e capturas indisponíveis)')"
+  echo "Unity Hub IPC:      conexão automática quando o socket local estiver disponível"
   exit 0
 fi
 
@@ -70,8 +71,17 @@ if [[ "${1:-}" == --debug-editor ]]; then
     -ex "bt 20" -ex detach -p "$EDITOR_PID"
 fi
 
-if [[ "${1:-}" == --capture-window ]]; then
-  WINDOW_ID="$(wmctrl -lx | awk '$3 ~ /Unity-6000/ { print $1; exit }')"
+if [[ "${1:-}" == --capture-window || "${1:-}" == --capture-package-manager || "${1:-}" == --capture-dialog ]]; then
+  if [[ "${1:-}" == --capture-dialog ]]; then
+    WINDOW_ID="$(wmctrl -lx | awk '$3 ~ /Unity-6000/ && /Warning|Import Unity Package|Project Settings|Error!/ { print $1; exit }')"
+    CAPTURE_NAME=UnityDialog.png
+  elif [[ "${1:-}" == --capture-package-manager ]]; then
+    WINDOW_ID="$(wmctrl -lx | awk '$3 ~ /Unity-6000/ && /Package Manager/ { print $1; exit }')"
+    CAPTURE_NAME=PackageManager.png
+  else
+    WINDOW_ID="$(wmctrl -lx | awk '$3 ~ /Unity-6000/ { print $1; exit }')"
+    CAPTURE_NAME=UnityWindow.png
+  fi
   if [[ -z "$WINDOW_ID" ]]; then
     echo "Janela da Unity não encontrada." >&2
     exit 1
@@ -79,7 +89,7 @@ if [[ "${1:-}" == --capture-window ]]; then
   mkdir -p "$PROJECT_DIR/Logs"
   mkdir -p "$LOCAL_DIR/tmp"
   export MAGICK_TEMPORARY_PATH="$LOCAL_DIR/tmp"
-  exec import -window "$WINDOW_ID" "$PROJECT_DIR/Logs/UnityWindow.png"
+  exec import -window "$WINDOW_ID" "$PROJECT_DIR/Logs/$CAPTURE_NAME"
 fi
 
 if [[ "${1:-}" == --capture-error ]]; then
@@ -125,12 +135,13 @@ if [[ ! -x "$EDITOR_BIN" ]]; then
   exit 1
 fi
 
-if [[ "${1:-}" == --reopen || "${1:-}" == --reopen-game || "${1:-}" == --reopen-play ]]; then
+if [[ "${1:-}" == --reopen || "${1:-}" == --reopen-game || "${1:-}" == --reopen-play || "${1:-}" == --reopen-kit-import ]]; then
   # Pontos de entrada do Editor (Assets/_Project/Scripts/Editor). Enquanto não existirem,
   # a Unity reabre na última cena, sem -executeMethod.
   case "${1:-}" in
     --reopen-game) REOPEN_METHOD=GameYunit.Editor.EditorEntryPoints.OpenGame ;;
     --reopen-play) REOPEN_METHOD=GameYunit.Editor.EditorEntryPoints.PlayGame ;;
+    --reopen-kit-import) REOPEN_METHOD=GameYunit.Editor.EditorEntryPoints.OpenKitImport ;;
     *) REOPEN_METHOD="" ;;
   esac
   if [[ -n "$REOPEN_METHOD" ]] &&
@@ -222,22 +233,27 @@ bind_home "$LOCAL_DIR/config/unity3d" "$HOME/.config/unity3d"
 bind_home "$LOCAL_DIR/data/unity3d" "$HOME/.local/share/unity3d"
 
 SOCKET_BINDS=()
+HUB_ARGS=()
+# Compartilha somente os sockets do Hub e da licença; os caches continuam locais.
+# Considera tanto o Hub instalado em /mnt/SSD quanto a instalação padrão em /tmp.
+HUB_USER="$(id -un)"
+for SOCKET_NAME in Unity-hubIPCService.sock \
+  "Unity-LicenseClient-$HUB_USER.sock" "Unity-LicenseClient-$HUB_USER-notifications.sock"; do
+  for SOCKET_DIR in /mnt/SSD/Unity/.tmp "${TMPDIR:-/tmp}" /tmp; do
+    SOCKET_SOURCE="$SOCKET_DIR/$SOCKET_NAME"
+    if [[ -S "$SOCKET_SOURCE" && "$SOCKET_SOURCE" != "$LOCAL_DIR/tmp/$SOCKET_NAME" ]]; then
+      SOCKET_BINDS+=(--ro-bind "$SOCKET_SOURCE" "/tmp/$SOCKET_NAME")
+      if [[ "$SOCKET_NAME" == Unity-hubIPCService.sock ]]; then HUB_ARGS=(-useHub -hubIPC); fi
+      break
+    fi
+  done
+done
 if [[ -d /tmp/.X11-unix ]]; then
   SOCKET_BINDS+=(--ro-bind /tmp/.X11-unix /tmp/.X11-unix)
 fi
 if [[ -n "${XDG_RUNTIME_DIR:-}" && -d "$XDG_RUNTIME_DIR" ]]; then
   SOCKET_BINDS+=(--ro-bind "$XDG_RUNTIME_DIR" "$XDG_RUNTIME_DIR")
 fi
-# Login da conta (Sign in, My Assets): o Editor fala com o serviço de licença e o IPC do Unity Hub
-# por sockets em /tmp. Como o /tmp do sandbox é .unity/tmp, só esses sockets são expostos;
-# sem eles, o Editor sobe um serviço de licença próprio, sem a sessão do Hub.
-HUB_USER="$(id -un)"
-for SOCKET in "/tmp/Unity-LicenseClient-$HUB_USER.sock" \
-  "/tmp/Unity-LicenseClient-$HUB_USER-notifications.sock" /tmp/Unity-hubIPCService.sock; do
-  if [[ -S "$SOCKET" ]]; then
-    SOCKET_BINDS+=(--bind "$SOCKET" "$SOCKET")
-  fi
-done
 
 LOG_ARGS=(-logFile "$PROJECT_DIR/Logs/Editor.log")
 for ARG in "$@"; do
@@ -267,4 +283,4 @@ exec bwrap --new-session --ro-bind / / --dev-bind /dev /dev --proc /proc \
   --unsetenv WAYLAND_DISPLAY \
   --setenv XDG_SESSION_TYPE x11 \
   --chdir "$PROJECT_DIR" \
-  "${EDITOR_COMMAND[@]}" -projectPath "$PROJECT_DIR" "${LOG_ARGS[@]}" "$@"
+  "${EDITOR_COMMAND[@]}" -projectPath "$PROJECT_DIR" "${HUB_ARGS[@]}" "${LOG_ARGS[@]}" "$@"

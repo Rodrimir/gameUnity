@@ -10,7 +10,9 @@ O clone **não traz tudo** o que o projeto precisa. Alguns itens são grandes, g
 
 | Item | Por que não está no Git | Como obter |
 |---|---|---|
-| **3D Game Kit** (Asset Store, ~2,2 GB) | A EULA da Asset Store proíbe redistribuir; ignorado em `/Assets/3DGamekit/` | Importar pela sua conta (passo 5). |
+| **[3D Game Kit 1.9.5](https://assetstore.unity.com/packages/templates/packs/3d-game-kit-3d-sample-project-115747)** (Asset Store, ~2,2 GB) | A EULA da Asset Store proíbe redistribuir; ignorado em `/Assets/3DGamekit/` | Adicionar o kit gratuito à sua conta Unity e importar por My Assets (passo 5). |
+| **Cópia `Assets/_Project/Scenes/Level1.unity` e seu `.meta`** (~38,5 MiB) | Retirada deste commit por tamanho; permanece apenas local | Não há download separado: depois de importar o kit, **GameYunit → Preparação → Preparar single-player** recria a cópia, com GUID estável. |
+| **`Assets/TextMesh Pro/` e seu `.meta`** (fonte principal ~2,15 MiB) | Recursos de terceiros recriáveis, ignorados para manter o commit pequeno | Fora de Play, **Window → TextMeshPro → Import TMP Essential Resources**. O pacote vem com o uGUI instalado pelo manifesto; não precisa de download separado. |
 | **Unity Editor 6000.3.27f2** | Instalação do sistema | Unity Hub → Instalações (a versão está em `ProjectSettings/ProjectVersion.txt`). |
 | **Licença da Unity** | Credencial pessoal | Unity Hub → Preferências → Licenças → Adicionar → Personal. |
 | `Library/` | Gerada pela Unity na primeira abertura | Automático (alguns minutos). |
@@ -28,8 +30,13 @@ O clone **não traz tudo** o que o projeto precisa. Alguns itens são grandes, g
    1. **Window → Package Manager → My Assets** (faça login na conta Unity, se pedir);
    2. **3D Game Kit**, versão 1.9.5 → **Download** → **Import**, importando tudo.
 
-   O download fica em `.unity/asset-store/`. Os detalhes (pasta criada, configurações que o kit altera) são confirmados na Fase 1 e registrados em [Docs/Fase1.md](Docs/Fase1.md).
-6. **Verificar:** `Tools/unity.sh --verify` compila em batch e roda os testes EditMode; os resultados ficam em `Logs/TestResults.xml` e `Logs/Tests.log`.
+   O download fica em `.unity/asset-store/` e os assets em `Assets/3DGamekit/`. O pacote também importa configurações de projeto e dependências; veja os resultados em [Docs/Fase1.md](Docs/Fase1.md).
+
+   Se você já adicionou o kit à conta no navegador, deixe o **Unity Hub aberto e autenticado** e rode `Tools/unity.sh --reopen-kit-import`. O launcher mantém os arquivos locais no sandbox e conecta o Editor ao canal IPC do Hub para receber a sessão. Também há o menu **GameYunit → Preparação → Importar 3D Game Kit** no Editor. O botão “Open in Unity” do navegador não é necessário.
+6. **Preparar o single-player:** após a importação, use **GameYunit → Preparação → Configurar URP do kit** e **GameYunit → Preparação → Preparar single-player**. O primeiro completa os assets versionados `PC_RPAsset`/`PC_Renderer` com os efeitos do kit e um perfil de volume válido; o segundo gera as cópias ausentes de Start e Level1 em `_Project/Scenes` e configura essas cópias no build. **Rodrigo: Level1 não vem no clone; esse passo é obrigatório após baixar/importar o kit.** A geração mantém o GUID esperado pelo projeto e preserva uma cópia local já existente. Em **Project Settings → Player**, mantenha **Active Input Handling = Both**. Os originais do kit permanecem na pasta ignorada.
+7. **Recursos de texto (obrigatório na máquina do Rodrigo):** fora de Play, use **Window → TextMeshPro → Import TMP Essential Resources**. O pacote já vem com o uGUI; não precisa de outro download. Esses recursos ficam em `Assets/TextMesh Pro/`, **fora do Git**, e precisam ser importados uma vez por máquina.
+8. **Verificar:** feche o Editor graciosamente com `Tools/unity.sh --close-editor` e rode `Tools/unity.sh --verify`. Os três testes conferem scripts ausentes nas cenas, URP, recursos de texto, Ellen e a transição do botão Start para Level1. Resultados em `Logs/TestResults.xml` e `Logs/Tests.log`.
+9. **Inspecionar:** `Tools/unity.sh --reopen-play` abre a primeira cena habilitada no build (Start) em Play, com prévia Full HD e escala ajustada à janela. Para ir direto à fase, use **GameYunit → Jogar Level1**, com o Editor fora de Play. **GameYunit → Jogar pelo menu do kit** abre explicitamente Start. Controles: WASD para mover, mouse para câmera, Espaço para pular e clique esquerdo para o cajado quando equipado.
 
 ### Teste em rede no Linux
 O Multiplayer Play Mode da Unity não existe no Linux. Para testar o co-op, rode o Editor como Host e uma build Linux de Development (em `Builds/`) como Client, em `127.0.0.1:7777`, ou duas builds.
