@@ -23,6 +23,26 @@ namespace GameYunit.Editor
             };
         }
 
+        [MenuItem("GameYunit/Preparação/Importar efeitos de magia")]
+        public static void OpenSpellVfxImport()
+        {
+            EditorApplication.delayCall += () =>
+            {
+                UnityEditor.PackageManager.UI.Window.Open("247933");
+                Debug.Log("[EditorEntryPoints] Package Manager aberto no Magic Effects FREE (VFX das magias).");
+            };
+        }
+
+        [MenuItem("GameYunit/Preparação/Importar ícones de magia")]
+        public static void OpenSpellIconsImport()
+        {
+            EditorApplication.delayCall += () =>
+            {
+                UnityEditor.PackageManager.UI.Window.Open("200511");
+                Debug.Log("[EditorEntryPoints] Package Manager aberto no FREE - RPG Fantasy Spell Icons.");
+            };
+        }
+
         [MenuItem("GameYunit/Preparação/Preparar single-player")]
         public static void PrepareSinglePlayer()
         {

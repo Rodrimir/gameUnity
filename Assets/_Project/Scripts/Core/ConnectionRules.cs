@@ -38,5 +38,12 @@ namespace GameYunit.Network
             if (color < 0 || color > 1) return "Cor de jogador inválida.";
             return reservedSlots >= MaxPlayers ? "Sala cheia (2/2)." : null;
         }
+
+        /// <summary>
+        /// Mantém a magia escolhida dentro do catálogo. Um índice fora da lista não derruba a conexão:
+        /// o jogador cai na primeira magia, porque recusar a entrada por isso seria pior que a correção.
+        /// </summary>
+        public static int CleanSpell(int spellIndex, int catalogCount) =>
+            catalogCount <= 0 || spellIndex < 0 || spellIndex >= catalogCount ? 0 : spellIndex;
     }
 }

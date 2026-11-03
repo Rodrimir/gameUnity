@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using GameYunit.Network;
+using GameYunit.Spells;
 using GameYunit.UI;
 using TMPro;
 using Unity.Cinemachine;
@@ -23,6 +24,7 @@ namespace GameYunit.KitBridge.Editor
         public const string LevelPath = "Assets/_Project/Scenes/Level1_Coop.unity";
         public const string PlayerPath = "Assets/_Project/Prefabs/EllenCoop.prefab";
         private const string ControllerPath = "Assets/_Project/Prefabs/EllenCoop.controller";
+        private const string CatalogPath = "Assets/_Project/Spells/CatalogoDeMagias.asset";
 
         [MenuItem("GameYunit/Preparação/Preparar cooperativo")]
         public static void Prepare()
@@ -30,6 +32,7 @@ namespace GameYunit.KitBridge.Editor
             if (EditorApplication.isPlaying) throw new InvalidOperationException("Saia de Play antes de preparar o cooperativo.");
             Directory.CreateDirectory("Assets/_Project/Prefabs");
             CopyAnimator();
+            SpellSetup.PrepareSpells();
             if (!File.Exists(PlayerPath)) CreatePlayerPrefab();
             if (!File.Exists(LevelPath)) CreateLevel();
             if (!File.Exists(MenuPath)) CreateMenu();
@@ -115,6 +118,11 @@ namespace GameYunit.KitBridge.Editor
             networkAnimator.AuthorityMode = NetworkAnimator.AuthorityModes.Owner;
             player.AddComponent<NetworkPlayerIdentity>();
             player.AddComponent<CoopPlayer>();
+            var caster = player.AddComponent<SpellCaster>();
+            var casterSerialized = new SerializedObject(caster);
+            casterSerialized.FindProperty("_catalog").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<SpellCatalog>(CatalogPath);
+            casterSerialized.ApplyModifiedPropertiesWithoutUndo();
             var label = new GameObject("Nome do jogador", typeof(TextMeshPro));
             label.transform.SetParent(player.transform, false);
             label.transform.localPosition = new Vector3(0, 2.4f, 0);
@@ -170,10 +178,36 @@ namespace GameYunit.KitBridge.Editor
             var session = root.AddComponent<CoopSession>();
             var serialized = new SerializedObject(session);
             serialized.FindProperty("_playerPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPath);
+            serialized.FindProperty("_catalog").objectReferenceValue = AssetDatabase.LoadAssetAtPath<SpellCatalog>(CatalogPath);
             serialized.ApplyModifiedPropertiesWithoutUndo();
             root.AddComponent<CoopMenu>();
             root.AddComponent<CoopSmokeProbe>();
             EditorSceneManager.SaveScene(scene, MenuPath);
+        }
+
+        /// <summary>
+        /// Religa prefab e cena do menu às magias. Necessário porque <see cref="Prepare"/> só cria o que
+        /// falta, e nas máquinas onde EllenCoop e CoopMenu já existiam eles não conhecem o catálogo.
+        /// </summary>
+        [MenuItem("GameYunit/Preparação/Atualizar cooperativo para magias")]
+        public static void UpgradeForSpells()
+        {
+            if (EditorApplication.isPlaying) throw new InvalidOperationException("Saia de Play antes de atualizar o cooperativo.");
+            SpellSetup.PrepareSpells();
+            RebuildPlayerPrefab();
+            var catalog = AssetDatabase.LoadAssetAtPath<SpellCatalog>(CatalogPath);
+            var scene = EditorSceneManager.OpenScene(MenuPath);
+            var session = UnityEngine.Object.FindFirstObjectByType<CoopSession>();
+            if (session == null) throw new InvalidOperationException("CoopMenu não tem CoopSession.");
+            var serialized = new SerializedObject(session);
+            serialized.FindProperty("_catalog").objectReferenceValue = catalog;
+            serialized.FindProperty("_playerPrefab").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPath);
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            EditorSceneManager.MarkSceneDirty(scene);
+            EditorSceneManager.SaveScene(scene);
+            AssetDatabase.SaveAssets();
+            Debug.Log("[CoopProjectSetup] Cooperativo atualizado para magias: prefab, catálogo e CoopMenu.");
         }
 
         [MenuItem("GameYunit/Jogar cooperativo")]
