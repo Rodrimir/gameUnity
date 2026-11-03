@@ -1,6 +1,6 @@
 # Fase 1 — Importar e verificar o 3D Game Kit
 
-*Preparação e testes automáticos concluídos na branch `rebuild/gamekit`, na máquina do Labubu. A fase aguarda conferência manual de movimento/combate.*
+*Fase encerrada em 03/11/2026, após aprovação explícita do usuário. Preparação e três testes automáticos concluídos; single-player e preparação na máquina do Rodrigo avaliados e aprovados pelo usuário.*
 
 ## Preparação verificada
 
@@ -89,7 +89,8 @@ O primeiro ensaio apontou o pipeline ausente e um problema de limpeza do própri
 
 As cenas incluídas no build desta etapa são Start e Level1; Level2 continua no kit e não foi preparado como fase do jogo.
 
-## Ainda falta verificar
+## Encerramento aprovado
 
-- Conferência manual de movimento, salto e combate da Ellen, incluindo aquisição do cajado.
-- Confirmação do usuário antes de considerar a Fase 1 encerrada e iniciar a Fase 2. O preparo do ambiente não implementa co-op.
+- O usuário informou: “single player avaliado” e “avaliado e ok tambem” sobre a preparação na máquina do Rodrigo. Esta é uma validação relatada pelo usuário, além dos testes automáticos registrados acima.
+- Autorização explícita: “encerre a fase 1, parta para cooperativo”. A Fase 1 está encerrada; a Fase 2 está autorizada.
+- Partidas em rede pertencem à Fase 2 e não foram validadas nesta fase.

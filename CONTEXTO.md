@@ -2,7 +2,7 @@
 
 Fonte da verdade do projeto: o que existe, **o que foi verificado e como**, as decisões e o próximo passo. Este arquivo registra só o que foi realmente executado e conferido. Plano completo: [Docs/Plano.md](Docs/Plano.md). Como rodar: [README.md](README.md).
 
-*Atualizado em 02/11/2026 — kit importado e single-player preparado na máquina do Labubu, branch `rebuild/gamekit`. Conferência manual da Fase 1 pendente.*
+*Atualizado em 03/11/2026 — Fase 1 encerrada com aprovação do usuário; Fase 2 (co-op mínimo) autorizada e em implementação.*
 
 ## 1. O jogo
 Survivors-like 3D em **co-op para 2 jogadores**, Host–Client por IP direto: mesma máquina em `127.0.0.1` ou LAN com o Host em `0.0.0.0`. O jogo está sendo **refeito sobre o 3D Game Kit** da Unity (Asset Store, 1.9.5, Unity 6.3 + URP), usando dele a arte, as fases (Level1, depois Level2), a Ellen e os inimigos (Chomper na horda; Spitter e Grenadier como escalada).
@@ -22,8 +22,8 @@ A prioridade é ter algo funcional e testado em rede com o mínimo de sistemas.
 | Fase | Conteúdo | Estado |
 |---|---|---|
 | 0 | Preservar legado, esqueleto, launcher, docs | ✅ Concluída e verificada ([Fase0.md](Docs/Fase0.md)) |
-| 1 | Projeto limpo + 3D Game Kit em single-player + auditoria multiplayer | ⏳ Importado e preparado; 3 testes passaram e Level1 está aberto em Play. Falta conferir movimento/combate manualmente ([Fase1.md](Docs/Fase1.md)) |
-| 2 | Co-op mínimo: conexão UDP/WebSocket, duas Ellens, câmera/input locais | — |
+| 1 | Projeto limpo + 3D Game Kit em single-player + auditoria multiplayer | ✅ Concluída: 3 testes automáticos passaram; single-player e instalação na máquina do Rodrigo aprovados pelo usuário ([Fase1.md](Docs/Fase1.md)) |
+| 2 | Co-op mínimo: conexão UDP/WebSocket, duas Ellens, câmera/input locais | ⏳ Autorizada; implementação iniciada |
 | 3 | Inimigos e combate em rede, caído/revive, HUD de vida | — |
 | 4 | Loop survivors: spawner, XP, upgrades, fim de partida | — |
 | 5 | Level2, áudio, balanceamento | — |
@@ -44,7 +44,7 @@ A prioridade é ter algo funcional e testado em rede com o mínimo de sistemas.
 - Conciliação com o commit **`a7b412c` do Rodrigo** por fast-forward, seguida da integração das adições locais. As 64 dependências dele foram preservadas nas mesmas versões; a configuração URP terminou com saída 0 e os **3 testes passaram novamente** após a conciliação.
 - Level1 aberta e renderizada no Editor, sem exceções/erros C# no log conferido. Prévia em **Full HD 1920×1080**, com escala ajustada à janela (0,48x nesta disposição), sem o zoom 3x anterior. `--reopen-play` preserva a escolha da primeira cena habilitada no build, introduzida por Rodrigo; o menu **Jogar Level1** abre a fase diretamente.
 
-**Ainda não verificado:** movimento, salto e combate por interação manual; partida em rede. O co-op ainda não foi implementado. Há um warning de serialização `CompositionModifier` do Cinemachine 3.1.3; nenhum arquivo original foi alterado para suprimi-lo.
+**Validação do usuário:** single-player e preparação na máquina do Rodrigo avaliados e aprovados nesta conversa. O usuário autorizou encerrar a Fase 1 e iniciar a Fase 2. **Ainda não verificado:** partida em rede. O co-op ainda não foi implementado. Há um warning de serialização `CompositionModifier` do Cinemachine 3.1.3; nenhum arquivo original foi alterado para suprimi-lo.
 
 ## 3. Decisões tomadas
 | # | Decisão |
@@ -105,10 +105,9 @@ Legacy/                   projeto anterior (código, cenas, docs), fora de Asset
 - A vida passa a vir do `Damageable` do kit; o Bloco 4 antigo era de outra pessoa, então alinhe antes de reaproveitar algo dele.
 
 ## 8. Próximo passo
-Concluir a conferência manual da **Fase 1**: movimentar Ellen, pular, obter/usar o cajado e conferir o Console. A cena está aberta em Play; `GameYunit → Jogar pelo menu do kit` permite começar pelo menu. Registrar somente o que for observado e confirmar antes de iniciar a Fase 2 (co-op).
+Implementar e verificar a **Fase 2** do plano: conexão de até dois jogadores em UDP/WebSocket, cópia Level1_Coop pela gestão de cenas NGO, movimento/animação do dono, câmera/input locais e desconexão limpa. A Fase 1 foi encerrada por aprovação explícita do usuário.
 
 ## 9. Pendências e riscos abertos
-- Movimento e combate ainda precisam de conferência manual nesta máquina.
 - Auditoria dos singletons, input, Cinemachine 3, pausa e dano está em [Fase1.md](Docs/Fase1.md). A invulnerabilidade do `Damageable` expira no `Update`; a ponte futura precisa considerar isso.
 - API de `NetworkAnimator` com autoridade do dono no NGO 2.13.
 - Desempenho dos inimigos do kit em horda (teto inicial de 40).
