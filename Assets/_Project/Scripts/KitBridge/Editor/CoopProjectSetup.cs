@@ -13,6 +13,7 @@ using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Rendering;
 
 namespace GameYunit.KitBridge.Editor
 {
@@ -187,15 +188,29 @@ namespace GameYunit.KitBridge.Editor
         public static void BuildLinux()
         {
             Directory.CreateDirectory("Builds/Linux");
-            var result = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            const BuildTarget target = BuildTarget.StandaloneLinux64;
+            bool previousDefault = PlayerSettings.GetUseDefaultGraphicsAPIs(target);
+            var previousApis = PlayerSettings.GetGraphicsAPIs(target);
+            try
             {
-                scenes = new[] { MenuPath, LevelPath },
-                locationPathName = "Builds/Linux/GameYunit.x86_64",
-                target = BuildTarget.StandaloneLinux64,
-                options = BuildOptions.Development
-            });
-            if (result.summary.result != BuildResult.Succeeded) throw new InvalidOperationException($"Build falhou: {result.summary.result}");
-            Debug.Log($"[CoopProjectSetup] Build Linux concluído: {result.summary.totalSize} bytes.");
+                // Backend já usado pelo Editor Linux; evita compilar também milhares de variantes Vulkan.
+                PlayerSettings.SetUseDefaultGraphicsAPIs(target, false);
+                PlayerSettings.SetGraphicsAPIs(target, new[] { GraphicsDeviceType.OpenGLCore });
+                var result = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+                {
+                    scenes = new[] { MenuPath, LevelPath },
+                    locationPathName = "Builds/Linux/GameYunit.x86_64",
+                    target = target,
+                    options = BuildOptions.Development
+                });
+                if (result.summary.result != BuildResult.Succeeded) throw new InvalidOperationException($"Build falhou: {result.summary.result}");
+                Debug.Log($"[CoopProjectSetup] Build Linux OpenGL concluído: {result.summary.totalSize} bytes.");
+            }
+            finally
+            {
+                PlayerSettings.SetGraphicsAPIs(target, previousApis);
+                PlayerSettings.SetUseDefaultGraphicsAPIs(target, previousDefault);
+            }
         }
     }
 }

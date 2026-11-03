@@ -42,11 +42,19 @@ O clone **não traz tudo** o que o projeto precisa. Alguns itens são grandes, g
 
 ### Teste em rede no Linux
 
-1. No Editor, **GameYunit → Build → Cliente Linux Development** gera `Builds/Linux/GameYunit.x86_64`. O módulo **Linux Build Support (Mono)** deve estar instalado junto ao Editor.
+1. No Editor, **GameYunit → Build → Cliente Linux Development** gera `Builds/Linux/GameYunit.x86_64` em OpenGL Core, com a mesma configuração visual do Editor desta máquina. O módulo **Linux Build Support (Mono)** deve estar instalado junto ao Editor.
 2. **GameYunit → Jogar cooperativo** abre a tela de conexão. Escolha nome/cor e **Criar sala**. O Host escuta em `0.0.0.0:7777`.
 3. Em outro terminal na raiz, rode `Tools/unity.sh --client -screen-fullscreen 0 -screen-width 1280 -screen-height 720`. Na janela do cliente, escolha outro nome/cor, mantenha `127.0.0.1:7777` e clique **Entrar na sala**.
 4. Os dois jogadores devem se ver e se mover de forma independente. WASD move, Espaço pula e o mouse controla a câmera. **Esc** abre apenas o menu local; a partida continua. **Sair da sala** retorna ao menu; o Host continua aberto quando o cliente sai.
 5. Repita escolhendo **WebSocket nos dois lados**. Para testar entre máquinas da LAN, use o IPv4 da máquina do Host no cliente e permita a porta 7777 UDP ou TCP conforme o protocolo.
+
+Para gerar o mesmo build pelo terminal, com o Editor fechado:
+
+```bash
+Tools/unity.sh -batchmode -quit \
+  -executeMethod GameYunit.KitBridge.Editor.CoopProjectSetup.BuildLinux \
+  -logFile Logs/BuildLinux.log
+```
 
 O Multiplayer Play Mode não está disponível no Linux; o fluxo usa um Editor e um executável. Inimigos e dano compartilhado pertencem à Fase 3. O single-player continua acessível por **GameYunit → Jogar pelo menu do kit**.
 

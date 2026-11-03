@@ -12,6 +12,7 @@ Em implementação. A Fase 1 foi encerrada por aprovação explícita do usuári
 - Level1_Coop é gerada do cenário original, com GUID estável e ignorada pelo tamanho. UI/fluxo single-player, inimigos, puzzles, destrutíveis e cutscenes foram removidos da cópia. Os arquivos originais do kit permanecem intocados.
 - Vida e dano ainda pertencem à Fase 3. Nesta fase, uma queda abaixo do cenário devolve o dono ao nascimento.
 - `Tools/unity.sh --client` executa o build Linux no mesmo sandbox, com dados, temporários e logs dentro do projeto.
+- A build Linux de Development usa OpenGL Core, o backend já utilizado pelo Editor nesta máquina. O método de build restaura a seleção de APIs anterior do projeto em `finally`. Isso reduz o custo de variantes de shader no build de teste.
 
 ## Verificação executada
 
