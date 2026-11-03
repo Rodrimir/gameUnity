@@ -228,6 +228,16 @@ fi
 if [[ -n "${XDG_RUNTIME_DIR:-}" && -d "$XDG_RUNTIME_DIR" ]]; then
   SOCKET_BINDS+=(--ro-bind "$XDG_RUNTIME_DIR" "$XDG_RUNTIME_DIR")
 fi
+# Login da conta (Sign in, My Assets): o Editor fala com o serviço de licença e o IPC do Unity Hub
+# por sockets em /tmp. Como o /tmp do sandbox é .unity/tmp, só esses sockets são expostos;
+# sem eles, o Editor sobe um serviço de licença próprio, sem a sessão do Hub.
+HUB_USER="$(id -un)"
+for SOCKET in "/tmp/Unity-LicenseClient-$HUB_USER.sock" \
+  "/tmp/Unity-LicenseClient-$HUB_USER-notifications.sock" /tmp/Unity-hubIPCService.sock; do
+  if [[ -S "$SOCKET" ]]; then
+    SOCKET_BINDS+=(--bind "$SOCKET" "$SOCKET")
+  fi
+done
 
 LOG_ARGS=(-logFile "$PROJECT_DIR/Logs/Editor.log")
 for ARG in "$@"; do
