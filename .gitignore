@@ -109,3 +109,7 @@ crashlytics-build.properties
 # Capturas de tela deixadas na raiz para consulta
 /Captura_de_tela_*.png
 /Screenshot*.png
+
+# Arquivos grandes de transporte dos assets entre máquinas (nunca versionar)
+/Assets.tar.gz
+/*.tar.gz

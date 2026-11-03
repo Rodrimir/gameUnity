@@ -13,6 +13,8 @@ Em implementação. A Fase 1 foi encerrada por aprovação explícita do usuári
 - Vida e dano ainda pertencem à Fase 3. Nesta fase, uma queda abaixo do cenário devolve o dono ao nascimento.
 - `Tools/unity.sh --client` executa o build Linux no mesmo sandbox, com dados, temporários e logs dentro do projeto.
 - A build Linux de Development usa OpenGL Core, o backend já utilizado pelo Editor nesta máquina. O método de build restaura a seleção de APIs anterior do projeto em `finally`. Isso reduz o custo de variantes de shader no build de teste.
+- **Correção da tela preta na build (03/11/2026).** `GaussianBlurRenderFeature` do kit resolve o material por `Shader.Find("Hidden/Universal/GaussianBlur")`. Nenhum material referencia esse shader, então ele ficava fora do build: `Shader.Find` devolvia `null`, `new Material(null)` lançava `ArgumentNullException` e o Render Graph abortava o frame inteiro, a cada frame. A janela abria e nada era desenhado. O shader passou a constar em **Always Included Shaders** (`ProjectSettings/GraphicsSettings.asset`); nenhum arquivo do kit foi alterado.
+- **Licença no sandbox.** O launcher só copia a licença quando `.unity/config/unity3d/Unity/licenses` ainda não existe. A cópia tinha envelhecido e o build em `-batchmode` falhava com `No valid Unity Editor license found` (erro 404 de entitlements). Sincronizar a pasta a partir de `~/.config/unity3d/Unity` resolveu.
 
 ## Verificação executada
 
@@ -22,9 +24,35 @@ Em implementação. A Fase 1 foi encerrada por aprovação explícita do usuári
 | Regras de aprovação/endereço/nomes, prefab/cena, ciclo Host e regressão single-player | `Logs/TestResults.xml`, execução de 03/11/2026 02:32 UTC | 20 testes passaram, 0 falhas |
 | Ciclo do Host no teste | `CoopTests.HostLoadsCoopAndReturnsToMenuOnShutdown` | Level1_Coop carregada, PlayerObject criado e retorno a CoopMenu após shutdown |
 
-## Ensaios ainda em execução
+## Ensaio de rede entre processos — 03/11/2026 (máquina do Rodrigo)
 
-Build Linux Development e sessões reais Editor Host + Linux Client em UDP/WebSocket. Os resultados serão registrados após observação; testes de uma única instância não provam comunicação entre processos.
+Build Linux regerada após a correção do shader: `Builds/Linux`, 1 746 192 954 bytes, OpenGL Core, Development.
+
+**Renderização.** Build executada por `Tools/unity.sh --client`: menu e `Level1_Coop` desenhados, **zero**
+`Render Graph Execution error` nos três processos observados, contra 3 709 ocorrências na build anterior
+(`Logs/Client-run.log`). Capturas em `Logs/Prova-CoopMenu.png`, `Logs/Janela1-host.png`,
+`Logs/Coop-host-2jogadores.png` e `Logs/Coop-cliente-2jogadores.png`.
+
+**Co-op UDP com dois processos reais**, duas instâncias da build em `127.0.0.1:7777`:
+
+| Verificação | Evidência | Resultado |
+|---|---|---|
+| Host e cliente se conectam em UDP | `Logs/Network/udp-host.json` | ✅ |
+| `Level1_Coop` carregada pela rede | `checks` das duas evidências | ✅ |
+| Dois jogadores em pontos distintos | `(22.75, 1.42, 64.29)` e `(25.15, 1.45, 64.29)` | ✅ |
+| Nomes e cores replicados | `checks` das duas evidências | ✅ |
+| Câmera segue apenas o dono | `localCamera: true` nos dois | ✅ |
+| Input e CharacterController exclusivos do dono | `remoteInputBlocked: true` nos dois | ✅ |
+| Entrada manual na sala aberta | `[CoopSession] Jogador 2 no ponto 1`; HUD `2/2` nas duas janelas | ✅ |
+
+## Pendente nesta fase
+
+- **Movimento e animação replicados ainda não provados.** No ensaio automatizado o processo cliente encerrou de forma
+  ordenada no instante em que o roteiro ia ativar o input de teste (`UseTestInput`), sem exceção no log; o Host
+  registrou `Jogador desapareceu durante o ensaio`. Causa não identificada. Enquanto isso não fechar, `localDistance`,
+  `remoteDistance`, `jumpHeight`, `remoteWalkAnimation` e `remoteJumpAnimation` seguem sem medição válida.
+- Ensaio em **WebSocket (TCP)** entre processos ainda não executado.
+- Partida entre **duas máquinas** da LAN ainda não executada.
 
 ## Como repetir
 

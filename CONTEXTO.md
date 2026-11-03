@@ -2,7 +2,7 @@
 
 Fonte da verdade do projeto: o que existe, **o que foi verificado e como**, as decisões e o próximo passo. Este arquivo registra só o que foi realmente executado e conferido. Plano completo: [Docs/Plano.md](Docs/Plano.md). Como rodar: [README.md](README.md).
 
-*Atualizado em 02/11/2026 — Fase 1 encerrada com aprovação do usuário; Fase 2 (co-op mínimo) autorizada e em implementação.*
+*Atualizado em 03/11/2026 — Fase 2 em implementação: conexão co-op UDP verificada entre dois processos reais e tela preta da build corrigida; replicação de movimento ainda não provada.*
 
 ## 1. O jogo
 Survivors-like 3D em **co-op para 2 jogadores**, Host–Client por IP direto: mesma máquina em `127.0.0.1` ou LAN com o Host em `0.0.0.0`. O jogo está sendo **refeito sobre o 3D Game Kit** da Unity (Asset Store, 1.9.5, Unity 6.3 + URP), usando dele a arte, as fases (Level1, depois Level2), a Ellen e os inimigos (Chomper na horda; Spitter e Grenadier como escalada).
@@ -23,7 +23,7 @@ A prioridade é ter algo funcional e testado em rede com o mínimo de sistemas.
 |---|---|---|
 | 0 | Preservar legado, esqueleto, launcher, docs | ✅ Concluída e verificada ([Fase0.md](Docs/Fase0.md)) |
 | 1 | Projeto limpo + 3D Game Kit em single-player + auditoria multiplayer | ✅ Concluída: 3 testes automáticos passaram; single-player e instalação na máquina do Rodrigo aprovados pelo usuário ([Fase1.md](Docs/Fase1.md)) |
-| 2 | Co-op mínimo: conexão UDP/WebSocket, duas Ellens, câmera/input locais | ⏳ Autorizada; implementação iniciada |
+| 2 | Co-op mínimo: conexão UDP/WebSocket, duas Ellens, câmera/input locais | ⏳ Conexão UDP entre dois processos verificada; falta provar movimento/animação replicados e o ensaio WebSocket ([Fase2.md](Docs/Fase2.md)) |
 | 3 | Inimigos e combate em rede, caído/revive, HUD de vida | — |
 | 4 | Loop survivors: spawner, XP, upgrades, fim de partida | — |
 | 5 | Level2, áudio, balanceamento | — |
@@ -44,7 +44,13 @@ A prioridade é ter algo funcional e testado em rede com o mínimo de sistemas.
 - Conciliação com o commit **`a7b412c` do Rodrigo** por fast-forward, seguida da integração das adições locais. As 64 dependências dele foram preservadas nas mesmas versões; a configuração URP terminou com saída 0 e os **3 testes passaram novamente** após a conciliação.
 - Level1 aberta e renderizada no Editor, sem exceções/erros C# no log conferido. Prévia em **Full HD 1920×1080**, com escala ajustada à janela (0,48x nesta disposição), sem o zoom 3x anterior. `--reopen-play` preserva a escolha da primeira cena habilitada no build, introduzida por Rodrigo; o menu **Jogar Level1** abre a fase diretamente.
 
-**Validação do usuário:** single-player e preparação na máquina do Rodrigo avaliados e aprovados nesta conversa. O usuário autorizou encerrar a Fase 1 e iniciar a Fase 2. **Ainda não verificado:** partida em rede. O co-op ainda não foi implementado. Há um warning de serialização `CompositionModifier` do Cinemachine 3.1.3; nenhum arquivo original foi alterado para suprimi-lo.
+**Verificado na máquina do Rodrigo (Fase 2, 03/11/2026):**
+- **Tela preta da build resolvida.** `GaussianBlurRenderFeature` do kit resolve o material por `Shader.Find("Hidden/Universal/GaussianBlur")`; o shader não era referenciado por material nenhum e ficava fora do build, então `new Material(null)` lançava e o Render Graph abortava cada frame — 3 709 erros em `Logs/Client-run.log`. O shader entrou em **Always Included Shaders**; nenhum arquivo do kit foi tocado. Build regerada: **zero** erros de render, menu e fase desenhados.
+- **Licença do sandbox desatualizada** fazia todo build em `-batchmode` falhar com `No valid Unity Editor license found`. O launcher só copia a licença quando `.unity/config/unity3d/Unity/licenses` não existe ainda; sincronizar a pasta a partir de `~/.config/unity3d/Unity` resolveu. Vale rever essa cópia única no launcher.
+- **Co-op UDP entre dois processos reais** (duas instâncias da build em `127.0.0.1:7777`): conexão, carga de `Level1_Coop` pela rede, dois jogadores em pontos distintos, nomes e cores replicados, câmera e input exclusivos do dono, e entrada manual numa sala já aberta com HUD `2/2` nas duas janelas. Evidências em `Logs/Network/udp-*.json` e capturas em `Logs/Coop-*2jogadores.png`.
+- `wmctrl` **já está instalado** nesta máquina; `--reopen*` e capturas funcionam.
+
+**Validação do usuário:** single-player e preparação na máquina do Rodrigo avaliados e aprovados nesta conversa. O usuário autorizou encerrar a Fase 1 e iniciar a Fase 2. **Ainda não verificado:** movimento e animação replicados entre processos, o ensaio em WebSocket (TCP) e a partida entre duas máquinas da LAN. Há um warning de serialização `CompositionModifier` do Cinemachine 3.1.3; nenhum arquivo original foi alterado para suprimi-lo.
 
 ## 3. Decisões tomadas
 | # | Decisão |
@@ -105,9 +111,11 @@ Legacy/                   projeto anterior (código, cenas, docs), fora de Asset
 - A vida passa a vir do `Damageable` do kit; o Bloco 4 antigo era de outra pessoa, então alinhe antes de reaproveitar algo dele.
 
 ## 8. Próximo passo
-Implementar e verificar a **Fase 2** do plano: conexão de até dois jogadores em UDP/WebSocket, cópia Level1_Coop pela gestão de cenas NGO, movimento/animação do dono, câmera/input locais e desconexão limpa. A Fase 1 foi encerrada por aprovação explícita do usuário.
+Fechar a **Fase 2**: descobrir por que o processo cliente encerra de forma ordenada ao ativar o input de teste do `CoopSmokeProbe` (o Host registra `Jogador desapareceu durante o ensaio`), provar movimento e animação replicados, repetir o ensaio em WebSocket e testar entre duas máquinas da LAN.
 
 ## 9. Pendências e riscos abertos
+- `ConnectionRules.Version` é uma constante, não um hash do build: **builds diferentes conectam mesmo assim**, sem aviso. Convém derivar a versão de algo que mude a cada build antes de distribuir cópias.
+- A build distribuível é só Linux x86_64 (`CoopProjectSetup.BuildLinux`); não há alvo Windows.
 - Auditoria dos singletons, input, Cinemachine 3, pausa e dano está em [Fase1.md](Docs/Fase1.md). A invulnerabilidade do `Damageable` expira no `Update`; a ponte futura precisa considerar isso.
 - API de `NetworkAnimator` com autoridade do dono no NGO 2.13.
 - Desempenho dos inimigos do kit em horda (teto inicial de 40).

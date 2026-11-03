@@ -60,6 +60,21 @@ O Multiplayer Play Mode não está disponível no Linux; o fluxo usa um Editor e
 
 O ensaio automatizado usa `--coop-role host|client --coop-protocol udp|ws --coop-smoke` e grava evidências em `Logs/Network/`. Não se inicia sem esses argumentos. Procedimento e resultados em [Docs/Fase2.md](Docs/Fase2.md).
 
+### Jogar com outra pessoa na mesma rede (Linux)
+
+Quem recebe a build **não precisa** do Unity, do 3D Game Kit nem deste repositório: `Builds/Linux` é autossuficiente.
+
+1. Gere a build (passo 1 acima) e copie a pasta `Builds/Linux` inteira (~1,75 GB) para a outra máquina, preservando a estrutura. Os dois devem rodar **exatamente a mesma cópia**.
+2. Na máquina do Host, libere a porta: `sudo ufw allow 7777/udp` (ou `7777/tcp` ao usar WebSocket). Confira o firewall em uso — nesta máquina o `ufw` está ativo e bloqueia a entrada por padrão.
+3. Descubra o IPv4 do Host com `ip -4 addr show scope global`.
+4. Host: execute `./GameYunit.x86_64`, escolha nome e cor, confirme **UDP** e clique **Criar sala**. Ele escuta em `0.0.0.0:7777`.
+5. Convidado: execute `./GameYunit.x86_64`, digite o **IPv4 do Host**, porta `7777`, o **mesmo protocolo**, escolha a outra cor e clique **Entrar na sala**.
+
+Dois avisos:
+
+- `ConnectionRules.Version` é uma constante do código, não um hash do build. Versões diferentes do jogo **conectam mesmo assim**, sem aviso, e podem divergir em silêncio.
+- Para jogar fora da LAN seria preciso redirecionar a porta 7777 no roteador ou usar uma VPN (Tailscale, ZeroTier). Isso ainda não foi testado.
+
 ## Organização
 
 | Caminho | Conteúdo |
