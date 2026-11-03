@@ -2,12 +2,59 @@
 set -euo pipefail
 
 PROJECT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
-EDITOR_BIN="${GAMEYUNIT_UNITY_EDITOR:-/mnt/SSD/Unity/editors/6000.3.27f2/Editor/Unity}"
 LOCAL_DIR="$PROJECT_DIR/.unity"
+PROJECT_VERSION="$(awk '/^m_EditorVersion:/ { print $2 }' "$PROJECT_DIR/ProjectSettings/ProjectVersion.txt" 2>/dev/null || true)"
+
+# Editor (somente leitura): variável explícita, depois as instalações conhecidas da equipe.
+EDITOR_CANDIDATES=(
+  "${GAMEYUNIT_UNITY_EDITOR:-}"
+  "/mnt/SSD/Unity/editors/$PROJECT_VERSION/Editor/Unity"
+  "$HOME/Unity/Hub/Editor/$PROJECT_VERSION/Editor/Unity"
+)
+EDITOR_BIN=""
+for CANDIDATE in "${EDITOR_CANDIDATES[@]}"; do
+  if [[ -n "$CANDIDATE" && -x "$CANDIDATE" ]]; then EDITOR_BIN="$CANDIDATE"; break; fi
+done
+EDITOR_BIN="${EDITOR_BIN:-${GAMEYUNIT_UNITY_EDITOR:-$HOME/Unity/Hub/Editor/$PROJECT_VERSION/Editor/Unity}}"
+
+# Licença ativada pelo Unity Hub, copiada para dentro do projeto (nunca versionada).
+LICENSE_SOURCES=(
+  /mnt/SSD/Unity/xdg/config/unity3d/Unity
+  "$HOME/.config/unity3d/Unity"
+)
+
+# Os comandos de janela dependem do wmctrl; sem ele, falha com instrução em vez de erro cru.
+if ! command -v wmctrl >/dev/null 2>&1 && [[ "${1:-}" != --status ]]; then
+  wmctrl() {
+    echo "wmctrl não instalado: instale com 'sudo pacman -S wmctrl' ou feche/abra a Unity manualmente." >&2
+    exit 1
+  }
+fi
+
+if [[ "${1:-}" == --print-paths ]]; then
+  echo "Projeto:            $PROJECT_DIR"
+  echo "Versão do projeto:  ${PROJECT_VERSION:-desconhecida}"
+  echo "Editor:             $EDITOR_BIN $([[ -x "$EDITOR_BIN" ]] && echo '(ok)' || echo '(NÃO encontrado)')"
+  echo "Licença local:      $LOCAL_DIR/config/unity3d/Unity/licenses $([[ -d "$LOCAL_DIR/config/unity3d/Unity/licenses" ]] && echo '(ok)' || echo '(será copiada na próxima execução)')"
+  for SOURCE in "${LICENSE_SOURCES[@]}"; do
+    [[ -d "$SOURCE/licenses" ]] && echo "Origem da licença:  $SOURCE/licenses"
+  done
+  echo "Cache UPM:          $LOCAL_DIR/upm"
+  echo "Cache Asset Store:  $LOCAL_DIR/asset-store"
+  echo "Dados/config/cache: $LOCAL_DIR/{data,config,cache}"
+  echo "Temporários:        $LOCAL_DIR/tmp"
+  echo "Logs:               $PROJECT_DIR/Logs"
+  echo "wmctrl:             $(type -P wmctrl || echo 'não instalado (--reopen-*, --close-editor e capturas indisponíveis)')"
+  exit 0
+fi
 
 if [[ "${1:-}" == --status ]]; then
   ps -eo pid,etime,stat,comm | awk 'NR == 1 || tolower($4) ~ /unity|bwrap/'
-  wmctrl -lpGx | awk '$8 ~ /[Uu]nity/ { print $1, "pid=" $3, $8, substr($0, index($0, $10)) }'
+  if command -v wmctrl >/dev/null 2>&1; then
+    wmctrl -lpGx | awk '$8 ~ /[Uu]nity/ { print $1, "pid=" $3, $8, substr($0, index($0, $10)) }'
+  else
+    echo "(wmctrl não instalado: janelas não listadas)"
+  fi
   fuser -v "$PROJECT_DIR/Temp/UnityLockfile" 2>&1 || true
   exit 0
 fi
@@ -78,12 +125,19 @@ if [[ ! -x "$EDITOR_BIN" ]]; then
   exit 1
 fi
 
-if [[ "${1:-}" == --reopen-preview || "${1:-}" == --reopen-game || "${1:-}" == --reopen-play ]]; then
+if [[ "${1:-}" == --reopen || "${1:-}" == --reopen-game || "${1:-}" == --reopen-play ]]; then
+  # Pontos de entrada do Editor (Assets/_Project/Scripts/Editor). Enquanto não existirem,
+  # a Unity reabre na última cena, sem -executeMethod.
   case "${1:-}" in
-    --reopen-game) REOPEN_METHOD=GameYunit.Editor.ProjectSetup.OpenGame ;;
-    --reopen-play) REOPEN_METHOD=GameYunit.Editor.ProjectSetup.PlayGameForMenuReview ;;
-    *) REOPEN_METHOD=GameYunit.Editor.ProjectSetup.OpenAndCaptureCharacters ;;
+    --reopen-game) REOPEN_METHOD=GameYunit.Editor.EditorEntryPoints.OpenGame ;;
+    --reopen-play) REOPEN_METHOD=GameYunit.Editor.EditorEntryPoints.PlayGame ;;
+    *) REOPEN_METHOD="" ;;
   esac
+  if [[ -n "$REOPEN_METHOD" ]] &&
+    ! grep -rqs "static void ${REOPEN_METHOD##*.}(" "$PROJECT_DIR/Assets/_Project/Scripts/Editor"; then
+    echo "Método $REOPEN_METHOD ainda não existe; reabrindo na última cena." >&2
+    REOPEN_METHOD=""
+  fi
   WINDOW_ID="$(wmctrl -lx | awk '$3 ~ /Unity-6000/ { print $1; exit }')"
   if [[ -n "$WINDOW_ID" ]]; then
     wmctrl -ic "$WINDOW_ID"
@@ -104,7 +158,10 @@ if [[ "${1:-}" == --reopen-preview || "${1:-}" == --reopen-game || "${1:-}" == -
     echo "A Unity ainda mantém o lock do projeto; nova instância não será iniciada." >&2
     exit 1
   fi
-  exec "$PROJECT_DIR/Tools/unity.sh" -executeMethod "$REOPEN_METHOD"
+  if [[ -n "$REOPEN_METHOD" ]]; then
+    exec "$PROJECT_DIR/Tools/unity.sh" -executeMethod "$REOPEN_METHOD"
+  fi
+  exec "$PROJECT_DIR/Tools/unity.sh"
 fi
 
 EDITOR_COMMAND=("$EDITOR_BIN")
@@ -114,30 +171,55 @@ if [[ "${1:-}" == --debug-startup ]]; then
     -ex "set pagination off" -ex run -ex "thread apply all bt 12" --args "$EDITOR_BIN")
 fi
 
-if [[ "${1:-}" == --verify-and-open ]]; then
+if [[ "${1:-}" == --verify || "${1:-}" == --verify-and-open ]]; then
+  # Compila e roda todos os testes EditMode em batch; resultados em Logs/.
   mkdir -p "$PROJECT_DIR/Logs"
-  "$PROJECT_DIR/Tools/unity.sh" -batchmode -runTests \
-    -testPlatform EditMode -assemblyNames GameYunit.Editor.Tests \
+  "$PROJECT_DIR/Tools/unity.sh" -batchmode -runTests -testPlatform EditMode \
     -testResults "$PROJECT_DIR/Logs/TestResults.xml" -logFile "$PROJECT_DIR/Logs/Tests.log"
-  nohup "$PROJECT_DIR/Tools/unity.sh" -executeMethod GameYunit.Editor.ProjectSetup.OpenAndCaptureCharacters \
-    >"$PROJECT_DIR/Logs/Unity.stdout.log" 2>&1 </dev/null &
-  echo "Unity iniciada com PID $!; logs em $PROJECT_DIR/Logs."
+  if [[ "${1:-}" == --verify-and-open ]]; then
+    nohup "$PROJECT_DIR/Tools/unity.sh" >"$PROJECT_DIR/Logs/Unity.stdout.log" 2>&1 </dev/null &
+    echo "Unity iniciada com PID $!; logs em $PROJECT_DIR/Logs."
+  fi
   exit 0
 fi
 
-mkdir -p "$LOCAL_DIR/config/unity3d" "$LOCAL_DIR/cache" "$LOCAL_DIR/data" \
-  "$LOCAL_DIR/state" "$LOCAL_DIR/tmp" "$LOCAL_DIR/upm" "$PROJECT_DIR/Logs"
+mkdir -p "$LOCAL_DIR/config/unity3d" "$LOCAL_DIR/cache" "$LOCAL_DIR/data/unity3d" \
+  "$LOCAL_DIR/state" "$LOCAL_DIR/tmp" "$LOCAL_DIR/upm" "$LOCAL_DIR/asset-store" "$PROJECT_DIR/Logs"
 
 # HOME não é alterado. Os caminhos legados da Unity também apontam para cópias locais.
 # Somente a licença existente é copiada; nenhuma credencial entra no versionamento.
-LICENSE_SOURCE=/mnt/SSD/Unity/xdg/config/unity3d/Unity
-if [[ ! -d "$LOCAL_DIR/config/unity3d/Unity/licenses" && -d "$LICENSE_SOURCE/licenses" ]]; then
-  mkdir -p "$LOCAL_DIR/config/unity3d/Unity"
-  cp -a "$LICENSE_SOURCE/licenses" "$LOCAL_DIR/config/unity3d/Unity/"
-  if [[ -d "$LICENSE_SOURCE/config" ]]; then
-    cp -a "$LICENSE_SOURCE/config" "$LOCAL_DIR/config/unity3d/Unity/"
-  fi
+if [[ ! -d "$LOCAL_DIR/config/unity3d/Unity/licenses" ]]; then
+  for LICENSE_SOURCE in "${LICENSE_SOURCES[@]}"; do
+    if [[ -d "$LICENSE_SOURCE/licenses" ]]; then
+      mkdir -p "$LOCAL_DIR/config/unity3d/Unity"
+      cp -a "$LICENSE_SOURCE/licenses" "$LOCAL_DIR/config/unity3d/Unity/"
+      if [[ -d "$LICENSE_SOURCE/config" ]]; then
+        cp -a "$LICENSE_SOURCE/config" "$LOCAL_DIR/config/unity3d/Unity/"
+      fi
+      break
+    fi
+  done
 fi
+
+# Pastas do HOME redirecionadas para .unity/. Como a raiz do sandbox é somente leitura,
+# um destino inexistente não pode ser criado: nesse caso a pasta-mãe inteira é redirecionada.
+HOME_BINDS=()
+bind_home() {
+  local source="$1" target="$2"
+  mkdir -p "$source"
+  if [[ -d "$target" ]]; then
+    HOME_BINDS+=(--bind "$source" "$target")
+  elif [[ -d "$(dirname "$target")" ]]; then
+    HOME_BINDS+=(--bind "$(dirname "$source")" "$(dirname "$target")")
+  else
+    echo "Pasta $(dirname "$target") não existe; crie-a ou ajuste o Tools/unity.sh." >&2
+    exit 1
+  fi
+}
+bind_home "$LOCAL_DIR/cache" "$HOME/.cache"
+bind_home "$LOCAL_DIR/config/unity3d" "$HOME/.config/unity3d"
+# Destino padrão dos downloads da Asset Store no Linux (unity3d/Asset Store-5.x).
+bind_home "$LOCAL_DIR/data/unity3d" "$HOME/.local/share/unity3d"
 
 SOCKET_BINDS=()
 if [[ -d /tmp/.X11-unix ]]; then
@@ -158,8 +240,7 @@ done
 exec bwrap --new-session --ro-bind / / --dev-bind /dev /dev --proc /proc \
   --bind "$PROJECT_DIR" "$PROJECT_DIR" \
   --bind "$LOCAL_DIR/tmp" /tmp --bind "$LOCAL_DIR/tmp" /var/tmp \
-  --bind "$LOCAL_DIR/cache" "$HOME/.cache" \
-  --bind "$LOCAL_DIR/config/unity3d" "$HOME/.config/unity3d" \
+  "${HOME_BINDS[@]}" \
   "${SOCKET_BINDS[@]}" \
   --setenv XDG_CONFIG_HOME "$LOCAL_DIR/config" \
   --setenv XDG_CACHE_HOME "$LOCAL_DIR/cache" \
@@ -167,7 +248,7 @@ exec bwrap --new-session --ro-bind / / --dev-bind /dev /dev --proc /proc \
   --setenv XDG_STATE_HOME "$LOCAL_DIR/state" \
   --setenv TMPDIR "$LOCAL_DIR/tmp" \
   --setenv UPM_CACHE_ROOT "$LOCAL_DIR/upm" \
-  --setenv UNITY_ASSET_STORE_CACHE_PATH "$LOCAL_DIR/asset-store" \
+  --setenv ASSETSTORE_CACHE_PATH "$LOCAL_DIR/asset-store" \
   --setenv DOTNET_CLI_HOME "$LOCAL_DIR/dotnet" \
   --setenv GDK_BACKEND x11 \
   --setenv GTK_IM_MODULE xim \

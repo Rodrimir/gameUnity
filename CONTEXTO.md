@@ -1,142 +1,105 @@
 # GameYunit — Contexto do projeto
 
-Documento de entrada para quem chega ao projeto, seja uma pessoa da equipe ou um assistente de IA iniciando uma nova sessão. Resume o que existe, como está organizado, o que ainda não foi validado e como continuar. Os detalhes de cada bloco ficam em `Docs/BlocoN.md`; o roteiro original (prompts) está em `PROMPTS.md`.
+Fonte da verdade do projeto: o que existe, **o que foi verificado e como**, as decisões e o próximo passo. Este arquivo registra só o que foi realmente executado e conferido. Plano completo: [Docs/Plano.md](Docs/Plano.md). Como rodar: [README.md](README.md).
 
-*Atualizado em 02/11/2026. A cena `Game` tem o Vale Medieval e a partida local entra em Host. O usuário confirmou que o mapa está aprovado e corrigiu a direção visual: câmera em terceira pessoa atrás do personagem, nunca isométrica. A primeira execução revelou câmera/enquadramento e dano de contato ainda por calibrar. Host–Client ainda não foi testado. Alterações locais não commitadas.*
+*Atualizado em 02/11/2026 — Fase 0 concluída na branch `rebuild/gamekit`.*
 
 ## 1. O jogo
+Survivors-like 3D em **co-op para 2 jogadores**, Host–Client por IP direto: mesma máquina em `127.0.0.1` ou LAN com o Host em `0.0.0.0`. O jogo está sendo **refeito sobre o 3D Game Kit** da Unity (Asset Store, 1.9.5, Unity 6.3 + URP), usando dele a arte, as fases (Level1, depois Level2), a Ellen e os inimigos (Chomper na horda; Spitter e Grenadier como escalada).
 
-Bullet heaven / survivors-like 3D em terceira pessoa, com câmera seguindo atrás do personagem e estética retrô de PlayStation 1. Co-op para **2 jogadores** em modo **Host–Client** pela rede local.
+**Loop alvo:**
+- hordas contínuas;
+- combate do kit;
+- vida, dano, caído e revive;
+- gemas de XP com nível individual;
+- upgrades periódicos;
+- fim de partida e reinício.
 
-| Item | Escolha |
-|---|---|
-| Engine | Unity **6000.3.27f2 (6.3 LTS)**; o código também usa só APIs disponíveis na 2022.3 |
-| Render pipeline | URP |
-| Rede | Netcode for GameObjects (NGO **2.13.3** validado; mínimo 1.8 por causa de `[Rpc]`) + Unity Transport **2.7.4** |
-| Transporte | **UDP**, porta 7777 (o `UnityTransport` não implementa TCP). Mesma máquina: `127.0.0.1`. LAN: Host com Listen `0.0.0.0` |
-| Input | Input System **1.20.1** (pacote novo) |
-| Desenvolvimento | Linux (CachyOS) |
+A prioridade é ter algo funcional e testado em rede com o mínimo de sistemas.
 
-## 2. Regras de arquitetura (obrigatórias)
+## 2. Estado real
 
-1. **Server authoritative.** O client envia apenas **intenção** (movimento e mira, `PlayerInputData`). Posição, colisão, alvo, dano, XP e nível são decididos no servidor. No Host, a lógica de servidor roda localmente pelo mesmo caminho. O item "replicar do Client para o Host" da versão anterior deste arquivo **foi descartado**: o `NetworkTransform` usa autoridade de servidor.
-2. **Object Pooling** para tudo que nasce em massa. Há dois caminhos:
-   - objetos locais (projéteis) usam `ObjectPoolManager`;
-   - objetos de rede (inimigos, gemas de XP) usam `NetworkObjectPool`, que adapta o mesmo pool ao `INetworkPrefabInstanceHandler` do NGO.
-   - Nunca use `Instantiate`/`Destroy` diretamente nesses objetos.
-3. **Observer.** Sistemas se comunicam por eventos C# (`event Action<...>`). Eventos estáticos têm `ResetStatics` com `[RuntimeInitializeOnLoadMethod(SubsystemRegistration)]`, por causa do *Enter Play Mode* sem domain reload.
-4. **Projéteis não são NetworkObjects.** Um RPC por rajada (`ProjectileVolley`) e um por fim de projétil; cada client simula o visual localmente, adiantado pela latência.
-5. **Desacoplamento entre desenvolvedores.** Blocos feitos em paralelo devem preferir arquivos e asmdefs novos e integrar-se pelas APIs públicas já existentes (ver §5). Se precisar mexer em arquivo de outro bloco, faça a mudança mínima e registre no `Docs/BlocoN.md`.
-
-## 3. Estado por bloco
-
-| Bloco | Conteúdo | Estado |
+| Fase | Conteúdo | Estado |
 |---|---|---|
-| 0 — Fundação | Pastas, `NetworkManagerSetup` (Host/Client, aprovação com máx. 2), `ObjectPoolManager`, `PlayerNetwork` | ✅ Compilado e testado |
-| 1 — Movimento/câmera | `PlayerController` (CharacterController no servidor), `CameraController` em terceira pessoa e movimento relativo à câmera (só o jogador local), mira mouse/analógico (`PlayerAimInput`) | ⚠️ Implementado; validar enquadramento e controles em Play Mode |
-| 2 — Hordas | `EnemySpawner` (fluxo contínuo, 1,5/s, até 128, anel 12–18 m), `EnemyAI` (persegue o jogador mais próximo a 1,5 m/s), `NetworkObjectPool` | ✅ Código compilado; ritmo reduzido pela metade; sessão ainda não retestada |
-| 3 — Ataque automático | `AutoAttackSystem`, `Projectile`, `ProjectileVolley`, `IDamageable`; 3 armas iniciais em `WeaponDefinition` (Varinha teleguiada, Leque de 5, Perfurante); preparo de mapa (`MapSetupTool`, `PlayerSpawnPoint`, spawn de inimigos apoiado no chão) | ✅ Compilado; 5 testes de combate passaram |
-| 4 — Vida/dano/morte | `HealthComponent` autoritativo (100 HP jogador, 60 inimigo), dano de contato (8/s), mortes, barras de HP | ✅ Integrado ao `IDamageable`; falta validar em Play Mode |
-| 5 — XP e níveis | `XpDropper`, `XpDropService`, `XpGem`, `PlayerLevel` (XP individual, curva 5 + 5×(N−1)) | ✅ Compilado; 3 testes de progressão passaram |
-| 6 — Mapa/NavMesh/PSX | `PsxRenderTextureSetup` (320x240, Point, letterbox), shader `GameYunit/PSX Lit` (snap + afim + Gouraud), regras de importação retrô, `NavMeshSetupTool`, `NavMeshSteering` | ✅ Compilado; 4 testes de mapa/renderização passaram |
-| Personagens e cena | Biomechanical como inimigo; Survivalist, Adventure Female e Gravemind selecionáveis; `PlayerAppearance`, prefabs e cenas `Game`/`Characters` | ✅ Teste da cena real: Host, seleção dos três personagens e spawn do monstro |
-| Menu e partida | `MainMenuHUD`, Coop/vídeo, ocultação ao entrar, pausa global por `Esc`, HUD de XP/nível e upgrades a cada 30 abates | ✅ Ligado à cena; falta validar cliques e fluxo Host–Client |
+| 0 | Preservar legado, esqueleto, launcher, docs | ✅ Concluída e verificada ([Fase0.md](Docs/Fase0.md)) |
+| 1 | Projeto limpo + 3D Game Kit em single-player + auditoria multiplayer | ⏳ Próxima (exige um passo manual: importar o kit pela My Assets) |
+| 2 | Co-op mínimo: conexão UDP/WebSocket, duas Ellens, câmera/input locais | — |
+| 3 | Inimigos e combate em rede, caído/revive, HUD de vida | — |
+| 4 | Loop survivors: spawner, XP, upgrades, fim de partida | — |
+| 5 | Level2, áudio, balanceamento | — |
 
-"Compilado e testado" acima registra a validação anterior à integração de vida, pausa e upgrades. Esta integração foi compilada pela Unity, mas nenhum teste automatizado ou fluxo completo foi executado nesta etapa. `Logs/TestResults.xml` contém resultados antigos e não representa esta integração. Uma instância Client separada ainda precisa de teste manual.
+**Verificado nesta máquina (Fase 0):**
+- o launcher encontra o Editor 6000.3.27f2 em `~/Unity/Hub/Editor` e copia a licença ativada pelo Hub;
+- o sandbox redireciona todas as gravações da Unity para `.unity/` e bloqueia o resto do home;
+- `Tools/unity.sh -batchmode -quit` abre o projeto com licença válida e sai com código 0.
 
-## 4. Organização do código
+**Ainda não existe:** nenhum código, cena ou prefab do jogo novo. O kit ainda não foi importado.
 
-```
-Assets/_Project/
-  Art/Shaders/PSXLit.shader        Shader URP PSX
-  ScriptableObjects/Weapons/       Weapon_HomingWand, Weapon_FanBurst, Weapon_PiercingBolt
-  Scripts/
-    Core/        GameYunit.Core — sem rede nem input: Pooling/, Rendering/CameraViewportMapping
-    Network/     NetworkManagerSetup, NetworkObjectPool
-    Player/      PlayerNetwork, PlayerController, PlayerAimInput, PlayerInputData, CameraController
-    Enemies/     EnemyAI, EnemySpawner, IEnemySteering, NavMeshSteering
-    Combat/      AutoAttackSystem, Projectile, ProjectileVolley, WeaponDefinition, IDamageable
-    Gameplay/    GameSessionController (pausa replicada e marcos de abates)
-    Progression/ PlayerLevel, XpGem, XpDropper, XpDropService
-    Map/         PlayerSpawnPoint
-    Rendering/   GameYunit.Rendering — PsxRenderTextureSetup (usa uGUI)
-    UI/Debug/    NetworkDebugHUD, WeaponSelectDebugHUD, LevelDebugHUD (IMGUI, só Editor/Development Build)
-    Editor/      GameYunit.Editor — MapSetupTool, Psx/ (importação e materiais)
-      Navigation/ GameYunit.Editor.Navigation — NavMeshSetupTool (só compila com AI Navigation)
-  Tests/Editor/  GameYunit.Editor.Tests — testes EditMode e de sessão Host
-Docs/BlocoN.md   Setup na Unity, fluxo de autoridade e roteiro de teste de cada bloco
-```
-
-| Assembly | Referências |
+## 3. Decisões tomadas
+| # | Decisão |
 |---|---|
-| `GameYunit.Core` | nenhuma |
-| `GameYunit.Runtime` | Core, Netcode, Transport, Collections, InputSystem |
-| `GameYunit.Rendering` | Core, `UnityEngine.UI` (separada para não alterar a Runtime) |
-| `GameYunit.Editor` | Core, Runtime |
-| `GameYunit.Editor.Navigation` | AI Navigation; `defineConstraints` exige o pacote |
-| `GameYunit.Editor.Tests` | Core, Runtime, Netcode, InputSystem + test frameworks |
+| 1 | **Movimento do dono:** a Ellen roda o controlador só na máquina do dono, replicada por `NetworkTransform` (autoridade do dono) + `NetworkAnimator`. O resto é decidido pelo servidor. |
+| 2 | Protocolo padrão **UDP** (porta 7777); **WebSocket/TCP** selecionável na tela de conexão. Os dois lados usam o mesmo. |
+| 3 | **Combate do kit:** cajado da Ellen (`MeleeWeapon`), **golpe manual** como no kit. As armas, projéteis e o ataque automático antigos foram descartados. |
+| 4 | **Visual do kit.** O filtro PSX fica no legado. |
+| 5 | **Parceiro revive** o jogador caído; game over quando os dois caem. |
+| 6 | **Kit fora do Git** (EULA, ~2,2 GB); o `README` explica como importá-lo em cada máquina. |
+| 7 | **Esc abre menu local** sem parar a partida; só a escolha de upgrade pausa os dois. |
 
-Convenções: namespaces `GameYunit.<Pasta>`; o código em `UI/Debug` usa o namespace `GameYunit.UI`, porque `.Debug` sombrearia `UnityEngine.Debug`. Campos privados `_camelCase`. Comentários e logs em português, com prefixo `[NomeDaClasse]`. Métodos que só valem no servidor terminam em `Server` (`AddXpServer`, `ReturnToPoolServer`). Cada bloco tem um `Docs/BlocoN.md`.
+## 4. Arquitetura (resumo; detalhes em [Docs/Plano.md](Docs/Plano.md) §2–§5)
+- **Servidor decide:** spawn, IA, dano, vida, caído/revive, morte, XP, nível, upgrades, partida e cena (`NetworkSceneManager`).
+- **Dono decide:** movimento, rotação e animação da própria Ellen; inicia o golpe, mas o acerto e o dano são confirmados na cópia do servidor.
+- **Cliente local:** câmera, input, HUD e menu Esc.
+- **Rede:** NGO 2.x + Unity Transport 2.x (o projeto atual resolve NGO 2.13.3 e UTP 2.7.4).
+- **Pooling** (`ObjectPoolManager` + `NetworkObjectPool`, a reaproveitar do legado) para inimigos, gemas e VFX.
+- **Observer:** eventos C# com reset estático.
+- **Kit intocado.** Código que usa tipos do kit fica em `Assets/_Project/Scripts/KitBridge/`, **sem asmdef** (Assembly-CSharp). As asmdefs `GameYunit.Core` (sem rede), `GameYunit.Runtime`, `GameYunit.Editor` e `GameYunit.Tests` não dependem do kit. Cópias de scripts do kit são registradas em [Docs/AlteracoesNoKit.md](Docs/AlteracoesNoKit.md).
+- **Convenções:**
+  - namespaces `GameYunit.<Pasta>`;
+  - campos privados `_camelCase`;
+  - comentários e logs em português, com prefixo `[Classe]`;
+  - métodos só de servidor terminam em `Server`.
 
-## 5. Pontos de integração (contratos entre blocos)
+## 5. Organização atual
+```
+Assets/_Project/{Scripts,Prefabs,Scenes,ScriptableObjects}   esqueleto vazio
+Assets/3DGamekit/                                            3D Game Kit (ignorado; nome a confirmar na Fase 1)
+Docs/                     Plano.md, Fase0.md, AlteracoesNoKit.md
+Tools/unity.sh            launcher em sandbox
+Tools/move_legacy_ignored.sh  move arquivos ignorados do legado após o checkout
+Legacy/                   projeto anterior (código, cenas, docs), fora de Assets/
+```
 
-O **Bloco 4** implementa `IDamageable.ApplyDamageServer` em `HealthComponent`; projéteis atingem o contrato no servidor. A morte do Biomechanical chama `EnemyAI.ReturnToPoolServer()`, acionando o drop de XP existente. Inimigos causam 8 de dano de contato por segundo quando próximos; o servidor decide vida, dano, morte e upgrades.
+## 6. Ambiente e máquinas
+- **Esta máquina (Rodrigo):**
+  - Editor em `~/Unity/Hub/Editor/6000.3.27f2`;
+  - Unity Hub instalado e licença Personal ativa;
+  - `wmctrl` **não instalado**: `--reopen*`, `--close-editor` e capturas não funcionam até `sudo pacman -S wmctrl`.
+- **Máquina do Labubu:**
+  - Editor em `/mnt/SSD/Unity/editors/6000.3.27f2`;
+  - tem os arquivos ignorados do projeto antigo; depois do checkout desta branch, precisa rodar `Tools/move_legacy_ignored.sh`.
+- O log da Unity no sandbox registra `Access token is unavailable`. O login para a My Assets pode ter de ser feito dentro do Editor (a confirmar na Fase 1).
 
-Outras APIs públicas úteis:
-- **Jogador local:** `PlayerNetwork.LocalPlayer` e os eventos `OnLocalPlayerSpawned`/`OnLocalPlayerDespawned`, usados por câmera e HUDs.
-- **Combate:**
-  - `AutoAttackSystem.OnServerProjectileHit(GameObject, Vector3, float dano)` serve para números de dano;
-  - `OnVolleyFired` e `OnProjectileImpact` servem para SFX/VFX;
-  - `RequestWeapon(int)` troca a arma pelo servidor.
-- **Progressão:** `PlayerLevel.OnXpChanged(xp, necessário)`, `OnLevelUp(nível)` e `OnAnyPlayerLevelUp`; o marco separado de 30 mortes globais abre upgrades individuais.
-- **Inimigos:** `EnemyAI.ActiveOnServer` (lista no servidor) e `EnemySpawner.OnEnemySpawned`.
+## 7. Legado
+- O projeto anterior (Blocos 1–6) está em `Legacy/` e na tag `legacy/v1-pre-gamekit` / branch `legacy/v1`.
+- A documentação antiga marcava como testados sistemas que nunca rodaram juntos: **nada do legado é considerado funcionando**.
+- O que será reaproveitado está na tabela §4 do [Plano](Docs/Plano.md):
+  - pool, pool de rede, `NetworkManagerSetup` (com extensões), `PlayerSpawnPoint`, `PlayerLevel` e `XpDropService`;
+  - `XpGem`, `XpDropper` e a partida, reescritos;
+  - o restante, descartado.
+- A vida passa a vir do `Damageable` do kit; o Bloco 4 antigo era de outra pessoa, então alinhe antes de reaproveitar algo dele.
 
-## 6. Projeto Unity e arte
+## 8. Próximo passo
+**Fase 1**, conforme o [Plano](Docs/Plano.md):
+- manifesto limpo do template URP 6.3;
+- **importação manual do 3D Game Kit** pelo usuário (Window → Package Manager → My Assets, com o Editor aberto por `Tools/unity.sh`);
+- revisão do diff de `ProjectSettings`;
+- instalação de NGO/UTP/uGUI;
+- auditoria dos pontos multiplayer do kit;
+- **pronto quando** o Level1 for jogável sozinho, sem erros no Console.
 
-Agora existem `Packages/`, `ProjectSettings/`, os `.meta`, Input Actions, configurações URP e os prefabs Player, BiomechanicalEnemy, Projectile, XpGem e os quatro visuais. A cena `Game` reúne os sistemas num chão de teste com NavMesh e dois pontos de spawn; `Characters` mostra os modelos para inspeção. Veja `Docs/ProjetoUnity.md`.
-
-**Papéis confirmados pelo usuário:** só Biomechanical Mutant é inimigo. Survivalist, Adventure Female e Gravemind Dreadnought são os três personagens selecionáveis. A seleção é validada no servidor e replicada, sem alterar os atributos/controlador. Materiais PSX, texturas Point limitadas a 256 pixels, escala ajustada e root motion desativado. Os três selecionáveis têm ciclos idle/run; o monstro agora usa o Animator humanoide com os clipes existentes. Armas estilizadas são anexadas à mão direita; magia e disparos balísticos têm cores, projéteis e rastros próprios.
-
-Os ZIPs originais permanecem localmente em `modelo-jogo/`; os arquivos grandes de geometria e textura em `Assets/_Project/Art/Models/Characters/**/Source/` também ficam apenas na máquina. ZIPs, FBX e texturas de origem estão ignorados pelo Git, mas não foram removidos. Uma instalação limpa precisa receber esses arquivos à parte para restaurar a arte. O importador `Tools/import_models.py` seleciona apenas arte das versões Unity e preserva GUIDs; os visuais adaptados ficam em `Prefabs/Characters/`.
-
-**Restrição do usuário:** nenhum download, extração, cache, build, log ou temporário fora desta raiz. Execute a Unity por `Tools/unity.sh`: ele lê o Editor já instalado e restringe gravações ao projeto; `.unity/`, `Library/`, `Temp/` e `Logs/` são ignorados pelo Git. Não use o launcher global da Unity nem projetos temporários externos.
-
-**Fluxo do Editor:** após cada mudança visível, feche graciosamente a instância anterior, aguarde a janela e o lock do projeto fecharem, e reabra apenas uma instância na cena atualizada. Use `Tools/unity.sh --reopen-game` para `Game`, `--reopen-preview` para `Characters`, ou `--reopen-play` para testar o menu; o launcher aborta se o lock continuar ativo. Alterações não visuais não exigem reinício.
-
-O kit `Medieval Village & Dungeon Kit` v0.3.0 foi baixado para `modelo-jogo/MedievalVillageKit_Unity_0.3.0.zip` e extraído como pacote local em `Packages/com.danielgruginski.medievalkit/`. Tanto o ZIP quanto o pacote de 601 MB estão ignorados pelo Git para evitar adicionar centenas de megabytes ao repositório. Ele inclui `VK_ValleyTown` (216 × 168 m), `VK_Hamlet`, interiores, masmorras e cavernas, sob licença CC0. `VK_ValleyTown` foi integrado à cena `Game`: o piso de teste foi removido, o NavMesh pré-assado do pacote foi mantido, foram adicionados 1.595 colliders estáticos às malhas e os dois spawns foram projetados no NavMesh. O usuário aprovou o mapa. O Play Mode precisa de nova validação visual, de colisão e desempenho com a câmera em terceira pessoa. Vida, dano, morte e XP também precisam de validação em partida e co-op.
-
-## 7. Como prosseguir (ordem recomendada)
-
-1. **Revisar e versionar a montagem local.** `Packages/`, `ProjectSettings/`, cenas, prefabs, Input Actions e `.meta` já foram criados. As alterações ainda não foram commitadas. Preserve os ZIPs originais e não versione caches/licenças/logs.
-2. **Validar a integração em Play Mode.** Conferir Host, dano, mortes/XP, contato, upgrades, pausa, armas na mão, animações e efeitos. Os testes automatizados ainda não foram executados nesta integração.
-3. **Testar Host–Client em instâncias separadas.** Falta validar seleção replicada, pausa e upgrades globais, movimento e HUD numa build Linux de Development.
-4. **Validar a partida e a câmera em terceira pessoa** em `Game`: conferir visual, spawns, colisão, caminhos dos inimigos e desempenho dos 1.595 colliders estáticos.
-5. **Polir o menu e ajustar o balanceamento** após os testes. A tela cheia e os VFX estão ligados ao fluxo atual.
-6. **Seguir para os próximos sistemas:** fim de partida/reinício, seleção de arma travada durante a partida e áudio.
-
-## 8. Decisões
-
-Tomadas:
-- **Autoridade:** movimento autoritativo no servidor, sem predição no client.
-- **Mira:** independente do movimento (mouse ou analógico direito).
-- **Spawn de inimigos:** fluxo contínuo, como ponto de partida.
-- **Armas:** as três ficam disponíveis como arma inicial. Todas miram o inimigo mais próximo e só disparam com inimigo no raio.
-- **XP:** individual por jogador. Acima de 300 gemas ativas, o XP é somado à gema mais antiga.
-- **Pausa:** `Esc` alterna uma pausa global replicada; upgrades são individuais e a partida retoma quando todos os jogadores conectados escolhem. Desconexões são retiradas da fila.
-- **Melhorias:** a cada 30 mortes globais, cada jogador escolhe +5% de dano, +5% de vida máxima ou cura completa.
-- **Armas e VFX:** armas baixas em polígonos ficam presas à mão; efeitos locais de disparo e impacto são reaproveitados pelo pool.
-- **NavMesh:** consultas de caminho (`NavMesh.CalculatePath`) em vez de `NavMeshAgent`, para manter o `CharacterController` e a replicação.
-- **Menus:** Coop (criar/entrar), vídeo, mapa (um por enquanto), seleção de personagem/arma inicial e projéteis com efeitos de disparo/rastro/impacto. A primeira versão de Coop/vídeo está em `Docs/Menu.md`; VFX e validação em Play Mode continuam pendentes.
-
-Pendentes:
-- **Mapa:** `VK_ValleyTown` está aplicado à cena `Game` e foi aprovado pelo usuário; validar visibilidade, colisão e desempenho em Play Mode.
-- **Validação Host–Client e balanceamento:** as mecânicas novas foram compiladas, mas ainda não testadas em partida.
-
-## 9. Limitações conhecidas
-
-- A troca de arma é permitida a qualquer momento; ainda não há trava após o início da partida.
-- Quando o `EnemySpawner` é despublicado (fim de partida), os inimigos removidos também geram gemas.
-- O spawner apoia inimigos no chão por raycast, mas não verifica se o ponto está no NavMesh, então um inimigo pode nascer numa área isolada.
-- No client, o visual de um projétil atravessa a parede até chegar o RPC de fim (cerca de um RTT).
-- O shader PSX não recebe sombras nem luzes adicionais, por escolha estética.
-- O Client sente a latência de ida e volta no próprio movimento (sem predição).
+## 9. Pendências e riscos abertos
+- A estrutura interna do kit está **a confirmar**: asmdef ou não, sistema de input, versão do Cinemachine, singletons, `Time.timeScale` na pausa, nome da pasta.
+- Login da conta no Editor dentro do sandbox, para a My Assets.
+- API de `NetworkAnimator` com autoridade do dono no NGO 2.13.
+- Desempenho dos inimigos do kit em horda (teto inicial de 40).

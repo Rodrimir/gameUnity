@@ -53,17 +53,32 @@ crashlytics-build.properties
 *.x86_64
 *.unitypackage
 
-# Large model and map sources stay local; see CONTEXTO.md for map reinstallation.
-/modelo-jogo/*.zip
-# Large third-party map package stays local, like the original model archives.
-/Packages/com.danielgruginski.medievalkit/
+# ---------------------------------------------------------------------------
+# 3D Game Kit (Asset Store): EULA proíbe redistribuir e são ~2,2 GB.
+# Cada máquina importa pela própria conta; veja "Rodar localmente" no README.
+# Nome da pasta a confirmar na Fase 1, logo após a importação.
+# ---------------------------------------------------------------------------
+/Assets/3DGamekit/
+/Assets/3DGamekit.meta
 
-# Raw model geometry and source textures stay local, including FBX models.
+# ---------------------------------------------------------------------------
+# Legado (projeto anterior ao 3D Game Kit): arquivos grandes ficam só local.
+# As regras com caminho antigo protegem máquinas que ainda não migraram;
+# rode Tools/move_legacy_ignored.sh depois do checkout para movê-los.
+# ---------------------------------------------------------------------------
+/modelo-jogo/*.zip
+/Packages/com.danielgruginski.medievalkit/
+/Legacy/Packages/com.danielgruginski.medievalkit/
 /Assets/_Project/Art/Models/Characters/**/Source/**/*.fbx
 /Assets/_Project/Art/Models/Characters/**/Source/**/*.FBX
 /Assets/_Project/Art/Models/Characters/**/Source/**/*.png
 /Assets/_Project/Art/Models/Characters/**/Source/**/*.tga
 /Assets/_Project/Art/Models/Characters/**/Source/**/*.bmp
+/Legacy/_Project/Art/Models/Characters/**/Source/**/*.fbx
+/Legacy/_Project/Art/Models/Characters/**/Source/**/*.FBX
+/Legacy/_Project/Art/Models/Characters/**/Source/**/*.png
+/Legacy/_Project/Art/Models/Characters/**/Source/**/*.tga
+/Legacy/_Project/Art/Models/Characters/**/Source/**/*.bmp
 
 # ---------------------------------------------------------------------------
 # IDEs
@@ -79,3 +94,7 @@ crashlytics-build.properties
 *~
 .directory
 .Trash-*
+
+# Capturas de tela deixadas na raiz para consulta
+/Captura_de_tela_*.png
+/Screenshot*.png
