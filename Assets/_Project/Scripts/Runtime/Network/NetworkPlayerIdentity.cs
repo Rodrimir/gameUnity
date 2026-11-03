@@ -12,18 +12,21 @@ namespace GameYunit.Network
         public readonly NetworkVariable<int> Slot = new();
         /// <summary>Posição da magia escolhida no catálogo compartilhado.</summary>
         public readonly NetworkVariable<int> SpellIndex = new();
+        /// <summary>Posição do personagem escolhido no catálogo compartilhado.</summary>
+        public readonly NetworkVariable<int> CharacterIndex = new();
         private string _initialName;
-        private int _initialColor, _initialSlot, _initialSpell;
+        private int _initialColor, _initialSlot, _initialSpell, _initialCharacter;
         public event Action Changed;
         public Color PlayerColor => ColorIndex.Value == 0
             ? new Color(0.25f, 0.73f, 1f) : new Color(1f, 0.55f, 0.22f);
 
-        public void InitializeServer(string playerName, int color, int slot, int spell = 0)
+        public void InitializeServer(string playerName, int color, int slot, int spell = 0, int character = 0)
         {
             _initialName = ConnectionRules.CleanName(playerName);
             _initialColor = color;
             _initialSlot = slot;
             _initialSpell = spell;
+            _initialCharacter = character;
         }
 
         public override void OnNetworkSpawn()
@@ -34,6 +37,7 @@ namespace GameYunit.Network
                 ColorIndex.Value = _initialColor;
                 Slot.Value = _initialSlot;
                 SpellIndex.Value = _initialSpell;
+                CharacterIndex.Value = _initialCharacter;
             }
             PlayerName.OnValueChanged += NameChanged;
             ColorIndex.OnValueChanged += ColorChanged;

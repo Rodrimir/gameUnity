@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using GameYunit.Network;
+using GameYunit.Characters;
 using GameYunit.Spells;
 using GameYunit.UI;
 using TMPro;
@@ -25,6 +26,7 @@ namespace GameYunit.KitBridge.Editor
         public const string PlayerPath = "Assets/_Project/Prefabs/EllenCoop.prefab";
         private const string ControllerPath = "Assets/_Project/Prefabs/EllenCoop.controller";
         private const string CatalogPath = "Assets/_Project/Spells/CatalogoDeMagias.asset";
+        private const string CharactersPath = "Assets/_Project/Characters/CatalogoDePersonagens.asset";
 
         [MenuItem("GameYunit/Preparação/Preparar cooperativo")]
         public static void Prepare()
@@ -33,6 +35,7 @@ namespace GameYunit.KitBridge.Editor
             Directory.CreateDirectory("Assets/_Project/Prefabs");
             CopyAnimator();
             SpellSetup.PrepareSpells();
+            CharacterSetup.PrepareCharacters();
             if (!File.Exists(PlayerPath)) CreatePlayerPrefab();
             if (!File.Exists(LevelPath)) CreateLevel();
             if (!File.Exists(MenuPath)) CreateMenu();
@@ -123,6 +126,10 @@ namespace GameYunit.KitBridge.Editor
             casterSerialized.FindProperty("_catalog").objectReferenceValue =
                 AssetDatabase.LoadAssetAtPath<SpellCatalog>(CatalogPath);
             casterSerialized.ApplyModifiedPropertiesWithoutUndo();
+            var coopSerialized = new SerializedObject(player.GetComponent<CoopPlayer>());
+            coopSerialized.FindProperty("_characters").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<CharacterCatalog>(CharactersPath);
+            coopSerialized.ApplyModifiedPropertiesWithoutUndo();
             var label = new GameObject("Nome do jogador", typeof(TextMeshPro));
             label.transform.SetParent(player.transform, false);
             label.transform.localPosition = new Vector3(0, 2.4f, 0);
@@ -179,6 +186,7 @@ namespace GameYunit.KitBridge.Editor
             var serialized = new SerializedObject(session);
             serialized.FindProperty("_playerPrefab").objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPath);
             serialized.FindProperty("_catalog").objectReferenceValue = AssetDatabase.LoadAssetAtPath<SpellCatalog>(CatalogPath);
+            serialized.FindProperty("_characters").objectReferenceValue = AssetDatabase.LoadAssetAtPath<CharacterCatalog>(CharactersPath);
             serialized.ApplyModifiedPropertiesWithoutUndo();
             root.AddComponent<CoopMenu>();
             root.AddComponent<CoopSmokeProbe>();
@@ -189,11 +197,12 @@ namespace GameYunit.KitBridge.Editor
         /// Religa prefab e cena do menu às magias. Necessário porque <see cref="Prepare"/> só cria o que
         /// falta, e nas máquinas onde EllenCoop e CoopMenu já existiam eles não conhecem o catálogo.
         /// </summary>
-        [MenuItem("GameYunit/Preparação/Atualizar cooperativo para magias")]
+        [MenuItem("GameYunit/Preparação/Atualizar cooperativo")]
         public static void UpgradeForSpells()
         {
             if (EditorApplication.isPlaying) throw new InvalidOperationException("Saia de Play antes de atualizar o cooperativo.");
             SpellSetup.PrepareSpells();
+            CharacterSetup.PrepareCharacters();
             RebuildPlayerPrefab();
             var catalog = AssetDatabase.LoadAssetAtPath<SpellCatalog>(CatalogPath);
             var scene = EditorSceneManager.OpenScene(MenuPath);
@@ -201,6 +210,8 @@ namespace GameYunit.KitBridge.Editor
             if (session == null) throw new InvalidOperationException("CoopMenu não tem CoopSession.");
             var serialized = new SerializedObject(session);
             serialized.FindProperty("_catalog").objectReferenceValue = catalog;
+            serialized.FindProperty("_characters").objectReferenceValue =
+                AssetDatabase.LoadAssetAtPath<CharacterCatalog>(CharactersPath);
             serialized.FindProperty("_playerPrefab").objectReferenceValue =
                 AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPath);
             serialized.ApplyModifiedPropertiesWithoutUndo();

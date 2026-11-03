@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e172d4ae462589012b3c8ba36f094977, type: 3}
+  m_Name: relampago
+  m_EditorClassIdentifier: GameYunit.Runtime::GameYunit.Spells.SpellDefinition
+  _id: relampago
+  _displayName: "Rel\xE2mpago"
+  _description: "Cone el\xE9trico \xE0 frente. Acerta v\xE1rios inimigos em linha."
+  _icon: {fileID: 0}
+  _tint: {r: 0.75, g: 0.7, b: 1, a: 1}
+  _shape: 1
+  _range: 8
+  _radius: 1
+  _coneAngle: 70
+  _height: 3
+  _damage: 18
+  _maxTargets: 5
+  _cooldown: 2.6
+  _castDelay: 0.3
+  _effectLifetime: 2
+  _effectPrefab: {fileID: 0}
+  _effectHeightOffset: 0.8

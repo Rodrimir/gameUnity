@@ -4066,6 +4066,7 @@ GameObject:
   - component: {fileID: 5689929232736037533}
   - component: {fileID: 3840554428174103938}
   - component: {fileID: 347013962047723033}
+  - component: {fileID: 5439586475680386611}
   m_Layer: 9
   m_Name: EllenCoop
   m_TagString: Untagged
@@ -4091,7 +4092,7 @@ Transform:
   - {fileID: 7613616454431046360}
   - {fileID: 9111725319960586273}
   - {fileID: 3701546542813785911}
-  - {fileID: 8912550711166331311}
+  - {fileID: 5466743367912065599}
   - {fileID: 6273396307213004971}
   - {fileID: 405805755800753971}
   - {fileID: 6506227536294308969}
@@ -4482,6 +4483,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameYunit.KitBridge.CoopPlayer
   ShowTopMostFoldoutHeaderGroup: 1
+  _characters: {fileID: 11400000, guid: b93c7410a7bf2511597ba05bd822e610, type: 2}
+--- !u!114 &5439586475680386611
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4078632786291787611}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 71191453fee7b7cf58abe231f66cb0a4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::GameYunit.KitBridge.SpellCaster
+  ShowTopMostFoldoutHeaderGroup: 1
+  _catalog: {fileID: 11400000, guid: 2bb9b92db9cd17f6480822803dca7091, type: 2}
+  _targetLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  _castOriginHeight: 1.2
 --- !u!1 &4130368404268424165
 GameObject:
   m_ObjectHideFlags: 0
@@ -4720,6 +4740,37 @@ Transform:
   - {fileID: 8641867666554847270}
   m_Father: {fileID: 4621417261425097787}
   m_LocalEulerAnglesHint: {x: 13.829125, y: -12.798734, z: -83.001656}
+--- !u!1 &4344201682580215173
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 5466743367912065599}
+  m_Layer: 9
+  m_Name: ---------
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &5466743367912065599
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4344201682580215173}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.0000025752886, y: -0.87105983, z: 0.000004567052, w: -0.49117687}
+  m_LocalPosition: {x: -4.031435, y: 9.366752, z: 2.2842546}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 553713612404369564}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &4405188201135137482
 GameObject:
   m_ObjectHideFlags: 0
@@ -17305,37 +17356,6 @@ SkinnedMeshRenderer:
     m_Center: {x: 0.0068225563, y: 0, z: -0.009298004}
     m_Extent: {x: 0.87855244, y: 0.7656409, z: 0.25213572}
   m_DirtyAABB: 0
---- !u!1 &7507030194665888076
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 8912550711166331311}
-  m_Layer: 9
-  m_Name: ---------
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &8912550711166331311
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 7507030194665888076}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0.0000025752886, y: -0.87105983, z: 0.000004567052, w: -0.49117687}
-  m_LocalPosition: {x: -4.031435, y: 9.366752, z: 2.2842546}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 553713612404369564}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &7554864459933637470
 GameObject:
   m_ObjectHideFlags: 0

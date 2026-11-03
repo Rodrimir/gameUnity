@@ -178,6 +178,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: GameYunit.Runtime::GameYunit.Network.CoopSession
   _playerPrefab: {fileID: 4078632786291787611, guid: e6c46a4fe6c0e31b7872e433baa9ef35,
     type: 3}
+  _catalog: {fileID: 11400000, guid: 2bb9b92db9cd17f6480822803dca7091, type: 2}
+  _characters: {fileID: 11400000, guid: b93c7410a7bf2511597ba05bd822e610, type: 2}
   _enemyPrefabs:
   - {fileID: 968093918622880207, guid: ee5427a38c2c03e14a61b93ccad6355d, type: 3}
   - {fileID: 7974259088618152385, guid: 986726b139d4dfe69bb4b1fb0cad3e45, type: 3}
