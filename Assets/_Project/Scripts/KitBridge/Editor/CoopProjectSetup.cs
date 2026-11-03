@@ -95,13 +95,15 @@ namespace GameYunit.KitBridge.Editor
             player.AddComponent<PlayerInput>();
             var damageable = player.GetComponent<Gamekit3D.Damageable>();
             damageable.onDamageMessageReceivers.Clear();
-            damageable.enabled = false;
+            damageable.enabled = true;
+            damageable.maxHitPoints = 100;
             var distributor = player.GetComponent<Gamekit3D.TargetDistributor>();
             if (distributor != null) UnityEngine.Object.DestroyImmediate(distributor);
             foreach (var weapon in player.GetComponentsInChildren<Gamekit3D.MeleeWeapon>(true))
             {
-                weapon.enabled = false;
-                weapon.targetLayers = 0;
+                weapon.enabled = true;
+                int enemyLayer = LayerMask.NameToLayer("Enemy");
+                weapon.targetLayers = enemyLayer >= 0 ? 1 << enemyLayer : ~0;
                 weapon.hitParticlePrefab = null;
             }
             player.AddComponent<NetworkObject>();
@@ -118,6 +120,7 @@ namespace GameYunit.KitBridge.Editor
             networkAnimator.AuthorityMode = NetworkAnimator.AuthorityModes.Owner;
             player.AddComponent<NetworkPlayerIdentity>();
             player.AddComponent<CoopPlayer>();
+            player.AddComponent<NetworkPlayerCombat>();
             var caster = player.AddComponent<SpellCaster>();
             var casterSerialized = new SerializedObject(caster);
             casterSerialized.FindProperty("_catalog").objectReferenceValue =

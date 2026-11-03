@@ -33,6 +33,9 @@ namespace GameYunit.KitBridge
         private Animator _animator;
         private Damageable _damageable;
         private float _nextAttack;
+        private Vector3 _spawnPosition;
+        private Quaternion _spawnRotation;
+        private Coroutine _respawnRoutine;
         private static readonly List<NetworkPlayerIdentity> Players = new();
 
         private void Awake()
@@ -52,8 +55,20 @@ namespace GameYunit.KitBridge
                 _damageable = gameObject.AddComponent<Damageable>();
                 _damageable.maxHitPoints = _maxHealth;
             }
+            EnsureDamageableEvents();
+            if (_damageable.onDamageMessageReceivers == null)
+                _damageable.onDamageMessageReceivers = new List<MonoBehaviour>();
             if (_damageable != null && !_damageable.onDamageMessageReceivers.Contains(this))
                 _damageable.onDamageMessageReceivers.Add(this);
+        }
+
+        private void EnsureDamageableEvents()
+        {
+            _damageable.OnDeath ??= new UnityEngine.Events.UnityEvent();
+            _damageable.OnReceiveDamage ??= new UnityEngine.Events.UnityEvent();
+            _damageable.OnHitWhileInvulnerable ??= new UnityEngine.Events.UnityEvent();
+            _damageable.OnBecomeVulnerable ??= new UnityEngine.Events.UnityEvent();
+            _damageable.OnResetDamage ??= new UnityEngine.Events.UnityEvent();
         }
 
         public override void OnNetworkSpawn()
@@ -61,6 +76,8 @@ namespace GameYunit.KitBridge
             Dead.OnValueChanged += OnDeadChanged;
             if (IsServer)
             {
+                _spawnPosition = transform.position;
+                _spawnRotation = transform.rotation;
                 Health.Value = _maxHealth;
                 Dead.Value = false;
                 if (_agent != null)
@@ -153,6 +170,18 @@ namespace GameYunit.KitBridge
             if (Dead.Value) return;
             Health.Value = Mathf.Max(0, Health.Value - Mathf.Max(1, amount));
             if (Health.Value == 0) Dead.Value = true;
+            if (Health.Value == 0 && _respawnRoutine == null) _respawnRoutine = StartCoroutine(RespawnServer());
+        }
+
+        private System.Collections.IEnumerator RespawnServer()
+        {
+            yield return new WaitForSeconds(4f);
+            if (!IsSpawned) yield break;
+            transform.SetPositionAndRotation(_spawnPosition, _spawnRotation);
+            _damageable.ResetDamage();
+            Health.Value = _maxHealth;
+            Dead.Value = false;
+            _respawnRoutine = null;
         }
 
         private void OnDeadChanged(bool previous, bool current) => ApplyVisualState(current);

@@ -54,6 +54,8 @@ A prioridade é ter algo funcional e testado em rede com o mínimo de sistemas.
 
 **Atualização de 03/11/2026:** `Cyber Monsters 2` e `DungeonCharacters/Skeletons_demo` foram importados e adaptados sem editar os arquivos de origem. As cópias `CyberMonster` e `DungeonSkeleton` ficam em `_Project/Prefabs/Enemies`, são registradas no NGO e são geradas pelo servidor na primeira onda de `Level1_Coop`. A compilação da integração passou; o teste EditMode teve 20 de 22 casos aprovados em modo sem gráficos, com os dois casos restantes bloqueados por erro de Global Illumination sem dispositivo gráfico. A sessão Host–Client com esses inimigos ainda não foi observada.
 
+**Atualização de combate/respawn de 03/11/2026:** o combate usa novamente as mecânicas do 3D Game Kit: `MeleeWeapon` e os eventos de animação da Ellen foram reativados, com `Damageable` no alvo e janela de acerto por hitbox. `NetworkEnemy` controla perseguição, ataque, hit kill, morte e respawn no servidor; `NetworkPlayerCombat` controla vida, morte e respawn da Ellen. Os inimigos recebem controladores gerados a partir das animações importadas, incluindo ataque e morte. A preparação passou em batchmode sem erros; a abertura gráfica do host carregou `Level1_Coop` e ficou aguardando o segundo jogador. O combate entre dois processos ainda precisa ser observado com Host e Client simultâneos.
+
 ## 3. Decisões tomadas
 | # | Decisão |
 |---|---|

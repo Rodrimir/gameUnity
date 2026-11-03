@@ -34,6 +34,14 @@ namespace GameYunit.KitBridge.Editor
             Debug.Log("[EnemyProjectSetup] CyberMonster e DungeonSkeleton preparados e registrados no co-op.");
         }
 
+        public static void PrepareCombat()
+        {
+            CoopProjectSetup.RebuildPlayerPrefab();
+            PrepareImportedEnemies();
+            AssetDatabase.SaveAssets();
+            Debug.Log("[EnemyProjectSetup] Combate, hit kill e respawn preparados.");
+        }
+
         private static GameObject CreateEnemyPrefab(string sourcePath, string outputPath, int health, float speed, float range, int damage)
         {
             GameObject source = AssetDatabase.LoadAssetAtPath<GameObject>(sourcePath);
@@ -43,12 +51,21 @@ namespace GameYunit.KitBridge.Editor
             visual.transform.SetParent(root.transform, false);
             try
             {
+                int enemyLayer = LayerMask.NameToLayer("Enemy");
+                if (enemyLayer >= 0) root.layer = enemyLayer;
+                string controllerPath = outputPath.Replace(".prefab", ".controller");
+                var enemyController = CreateController(controllerPath, sourcePath);
                 var visualAnimator = root.GetComponentInChildren<Animator>(true);
                 if (visualAnimator == null)
                 {
                     var animator = root.AddComponent<Animator>();
-                    string controllerPath = outputPath.Replace(".prefab", ".controller");
-                    animator.runtimeAnimatorController = CreateController(controllerPath, sourcePath);
+                    animator.runtimeAnimatorController = enemyController;
+                }
+                else
+                {
+                    visualAnimator.runtimeAnimatorController = enemyController;
+                    var networkAnimator = AddOrGet<NetworkAnimator>(visualAnimator.gameObject);
+                    networkAnimator.Animator = visualAnimator;
                 }
 
                 AddOrGet<NetworkObject>(root);
@@ -72,14 +89,14 @@ namespace GameYunit.KitBridge.Editor
         private static RuntimeAnimatorController CreateController(string path, string sourcePath)
         {
             if (AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(path) != null)
-                return AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>(path);
+                AssetDatabase.DeleteAsset(path);
             var controller = AnimatorController.CreateAnimatorControllerAtPath(path);
             controller.AddParameter("Speed", AnimatorControllerParameterType.Float);
             controller.AddParameter("Attack", AnimatorControllerParameterType.Trigger);
             controller.AddParameter("Dead", AnimatorControllerParameterType.Bool);
             string clipDirectory = sourcePath.Contains("DungeonCharacters")
                 ? "Assets/DungeonCharacters/Skeletons_demo/animation"
-                : Path.GetDirectoryName(sourcePath);
+                : "Assets/Cyber Monsters 2/Animation";
             var clips = AssetDatabase.FindAssets("t:AnimationClip", new[] { clipDirectory })
                 .SelectMany(guid => AssetDatabase.LoadAllAssetsAtPath(AssetDatabase.GUIDToAssetPath(guid)))
                 .OfType<AnimationClip>().Where(c => !c.name.StartsWith("__preview__")).ToArray();
