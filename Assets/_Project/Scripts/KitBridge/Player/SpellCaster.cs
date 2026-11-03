@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using GameYunit.Combat;
 using GameYunit.Network;
 using GameYunit.Spells;
 using Unity.Netcode;
@@ -32,7 +33,10 @@ namespace GameYunit.KitBridge
         private PlayerController _controller;
         private readonly List<PendingCast> _pendingServer = new();
         private readonly Collider[] _overlap = new Collider[64];
-        private float _readyAt;
+        private readonly HashSet<NetworkHealth> _hitRoots = new();
+        // Recargas separadas: no Host o mesmo objeto é dono e servidor, e um campo só faria a previsão
+        // local do dono ser lida como recarga pelo servidor, que recusaria a própria conjuração.
+        private float _ownerReadyAt, _serverReadyAt;
 
         private struct PendingCast
         {
@@ -52,7 +56,7 @@ namespace GameYunit.KitBridge
             {
                 var spell = CurrentSpell;
                 if (spell == null) return 1f;
-                float remaining = _readyAt - Time.time;
+                float remaining = _ownerReadyAt - Time.time;
                 return remaining <= 0f ? 1f : Mathf.Clamp01(1f - remaining / spell.Cooldown);
             }
         }
@@ -78,14 +82,14 @@ namespace GameYunit.KitBridge
         {
             var spell = CurrentSpell;
             if (spell == null) return;
-            bool ready = Time.time >= _readyAt;
+            bool ready = Time.time >= _ownerReadyAt;
             // Trava o gesto do kit enquanto recarrega, para o clique não animar um golpe sem efeito.
             if (_controller.canAttack != ready) _controller.SetCanAttack(ready);
             var session = CoopSession.Instance;
             if (!ready || session == null || session.LocalMenuOpen) return;
             if (!UnityEngine.Input.GetButtonDown("Fire1")) return;
             // Previsão local: a recarga começa já, sem esperar a volta do servidor.
-            _readyAt = Time.time + spell.Cooldown;
+            _ownerReadyAt = Time.time + spell.Cooldown;
             CastServerRpc();
         }
 
@@ -95,12 +99,12 @@ namespace GameYunit.KitBridge
             var spell = CurrentSpell;
             if (spell == null) return;
             // Margem de tolerância: a previsão do dono pode chegar pouco antes por causa da latência.
-            if (Time.time < _readyAt - 0.15f)
+            if (Time.time < _serverReadyAt - 0.15f)
             {
                 Debug.Log($"[SpellCaster] Conjuração de {OwnerClientId} ignorada: ainda recarregando.");
                 return;
             }
-            _readyAt = Time.time + spell.Cooldown;
+            _serverReadyAt = Time.time + spell.Cooldown;
             Vector3 origin = transform.position + Vector3.up * _castOriginHeight;
             Vector3 forward = transform.forward;
             _pendingServer.Add(new PendingCast
@@ -134,13 +138,22 @@ namespace GameYunit.KitBridge
             int found = Physics.OverlapSphereNonAlloc(center, spell.BroadRadius, _overlap, _targetLayers,
                 QueryTriggerInteraction.Ignore);
             var hits = new List<Collider>();
+            _hitRoots.Clear();
             for (int i = 0; i < found; i++)
             {
                 var collider = _overlap[i];
                 if (collider == null || collider.transform.IsChildOf(transform)) continue;
                 if (!spell.Contains(cast.Origin, cast.Forward, collider.bounds.center)) continue;
+                // Um alvo com vários colliders entraria na lista mais de uma vez e tomaria dano repetido.
+                var root = collider.GetComponentInParent<NetworkHealth>();
+                if (root != null && !_hitRoots.Add(root)) continue;
                 hits.Add(collider);
                 if (spell.MaxTargets > 0 && hits.Count >= spell.MaxTargets) break;
+            }
+            foreach (var hit in hits)
+            {
+                var health = hit.GetComponentInParent<NetworkHealth>();
+                if (health != null) health.ApplyDamageServer(spell.Damage);
             }
             Debug.Log($"[SpellCaster] {spell.DisplayName} de {OwnerClientId}: {hits.Count} alvo(s) na área.");
             TargetsHitServer?.Invoke(spell, hits);

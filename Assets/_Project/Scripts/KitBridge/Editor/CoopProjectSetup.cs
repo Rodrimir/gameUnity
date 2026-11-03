@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using GameYunit.Network;
 using GameYunit.Characters;
+using GameYunit.Combat;
 using GameYunit.Spells;
 using GameYunit.UI;
 using TMPro;
@@ -124,6 +125,10 @@ namespace GameYunit.KitBridge.Editor
             player.AddComponent<NetworkPlayerIdentity>();
             player.AddComponent<CoopPlayer>();
             player.AddComponent<NetworkPlayerCombat>();
+            // Vida, piscar e barra antes do conjurador, que depende de NetworkHealth nos alvos.
+            player.AddComponent<NetworkHealth>();
+            player.AddComponent<DamageFlash>();
+            player.AddComponent<HealthBar>();
             var caster = player.AddComponent<SpellCaster>();
             var casterSerialized = new SerializedObject(caster);
             casterSerialized.FindProperty("_catalog").objectReferenceValue =

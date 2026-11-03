@@ -84,6 +84,9 @@ namespace GameYunit.KitBridge
                 if (character != null) ApplyMaterial(renderer, character);
                 renderer.SetPropertyBlock(block);
             }
+            // O piscar de dano repinta pelo mesmo caminho: precisa saber a cor de descanso.
+            var flash = GetComponent<DamageFlash>();
+            if (flash != null) flash.SetBaseColor(tint);
             if (character != null && !Mathf.Approximately(character.Scale, 1f))
                 transform.localScale = Vector3.one * character.Scale;
         }

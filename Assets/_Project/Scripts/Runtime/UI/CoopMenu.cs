@@ -1,5 +1,6 @@
 using System.Linq;
 using GameYunit.Characters;
+using GameYunit.Combat;
 using GameYunit.Network;
 using GameYunit.Settings;
 using GameYunit.Spells;
@@ -27,11 +28,14 @@ namespace GameYunit.UI
         private CoopSession _session;
         private GameObject _panel, _stepStart, _stepSelect, _stepConnect, _pause, _hud;
         private TMP_InputField _name, _address, _port;
-        private TMP_Text _status, _hudText, _cooldownText, _detailName, _detailBody, _fpsText;
+        private TMP_Text _status, _hudText, _cooldownText, _detailName, _detailBody, _fpsText, _healthText;
+        private Image _healthFill;
+        private NetworkHealth _localHealth;
         private Button _host, _join;
         private Image _udp, _webSocket, _blue, _orange;
         private Button[] _spellButtons, _characterButtons;
         private SettingsPanel _settings;
+        private GameObject _healthBar;
         private ConnectionProtocol _protocol;
         private Step _step = Step.Start;
         private int _color, _spell, _character;
@@ -61,6 +65,8 @@ namespace GameYunit.UI
             _stepConnect.SetActive(inMenu && _step == Step.Connect);
             _pause.SetActive(hasPlayer);
             _hud.SetActive(hasPlayer);
+            if (_healthBar != null) _healthBar.SetActive(hasPlayer);
+            RefreshHealth(manager, hasPlayer);
             _host.interactable = _join.interactable = !_session.Busy;
             _status.text = _session.Status;
             UpdateFps();
@@ -141,6 +147,19 @@ namespace GameYunit.UI
                 TextAlignmentOptions.MidlineLeft);
             _cooldownText = Text("Magia ativa", _hud.transform, "", new Vector2(0, -52), new Vector2(650, 34), 20, Accent,
                 TextAlignmentOptions.MidlineLeft);
+
+            var healthBack = Box("Vida fundo", canvas.transform, new Vector2(0, -452), new Vector2(520, 34),
+                new Color(0.05f, 0.05f, 0.06f, 0.85f));
+            var fill = Box("Vida", healthBack.transform, Vector2.zero, new Vector2(516, 30), new Color(0.35f, 0.85f, 0.45f));
+            var fillRect = (RectTransform)fill.transform;
+            // Âncora à esquerda: a barra encolhe para a direita conforme a vida cai.
+            fillRect.anchorMin = new Vector2(0f, 0.5f);
+            fillRect.anchorMax = new Vector2(0f, 0.5f);
+            fillRect.pivot = new Vector2(0f, 0.5f);
+            fillRect.anchoredPosition = new Vector2(2f, 0f);
+            _healthFill = fill.GetComponent<Image>();
+            _healthText = Text("Vida valor", healthBack.transform, "", Vector2.zero, new Vector2(500, 30), 19, Color.white);
+            _healthBar = healthBack;
 
             _fpsText = Text("FPS", canvas.transform, "", new Vector2(860, 510), new Vector2(180, 40), 22, Accent,
                 TextAlignmentOptions.MidlineRight);
@@ -358,6 +377,26 @@ namespace GameYunit.UI
             summary.GetComponent<TMP_Text>().text = who == null && what == null
                 ? ""
                 : $"{who ?? "—"}  ·  {what ?? "sem magia"}";
+        }
+
+        /// <summary>Vida do jogador local, atualizada a cada quadro para o dano aparecer na hora.</summary>
+        private void RefreshHealth(NetworkManager manager, bool hasPlayer)
+        {
+            if (_healthFill == null || !hasPlayer) return;
+            if (_localHealth == null)
+            {
+                var player = manager.LocalClient?.PlayerObject;
+                if (player != null) _localHealth = player.GetComponent<NetworkHealth>();
+                if (_localHealth == null) return;
+            }
+            float fraction = _localHealth.Fraction;
+            _healthFill.rectTransform.sizeDelta = new Vector2(516f * fraction, 30f);
+            _healthFill.color = fraction > 0.5f ? new Color(0.35f, 0.85f, 0.45f)
+                : fraction > 0.25f ? new Color(0.95f, 0.75f, 0.25f)
+                : new Color(0.9f, 0.3f, 0.25f);
+            _healthText.text = _localHealth.IsAlive
+                ? $"{_localHealth.Current} / {_localHealth.Max}"
+                : "CAÍDO";
         }
 
         private string DescribeLocalSpell(NetworkManager manager)
