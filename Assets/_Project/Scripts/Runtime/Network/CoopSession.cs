@@ -21,6 +21,7 @@ namespace GameYunit.Network
         [SerializeField] private GameObject _playerPrefab;
         [Tooltip("Catálogo de magias; a ordem precisa ser idêntica nas duas máquinas.")]
         [SerializeField] private SpellCatalog _catalog;
+        [SerializeField] private GameObject[] _enemyPrefabs;
         private readonly Dictionary<ulong, Guest> _guests = new();
         private NetworkManager _manager;
         private UnityTransport _transport;
@@ -62,6 +63,16 @@ namespace GameYunit.Network
             bool registered = _manager.NetworkConfig.Prefabs.NetworkPrefabsLists
                 .Any(list => list != null && list.PrefabList.Any(entry => entry.Prefab == _playerPrefab));
             if (!registered) _manager.AddNetworkPrefab(_playerPrefab);
+            if (_enemyPrefabs != null)
+            {
+                foreach (var enemyPrefab in _enemyPrefabs)
+                {
+                    if (enemyPrefab == null) continue;
+                    bool enemyRegistered = _manager.NetworkConfig.Prefabs.NetworkPrefabsLists
+                        .Any(list => list != null && list.PrefabList.Any(entry => entry.Prefab == enemyPrefab));
+                    if (!enemyRegistered) _manager.AddNetworkPrefab(enemyPrefab);
+                }
+            }
             _manager.ConnectionApprovalCallback = ApproveServer;
             _manager.OnClientConnectedCallback += Connected;
             _manager.OnClientDisconnectCallback += Disconnected;

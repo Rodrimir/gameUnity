@@ -2,7 +2,7 @@
 
 Fonte da verdade do projeto: o que existe, **o que foi verificado e como**, as decisões e o próximo passo. Este arquivo registra só o que foi realmente executado e conferido. Plano completo: [Docs/Plano.md](Docs/Plano.md). Como rodar: [README.md](README.md).
 
-*Atualizado em 03/11/2026 — Fase 2 em implementação: conexão co-op UDP verificada entre dois processos reais e tela preta da build corrigida; replicação de movimento ainda não provada.*
+*Atualizado em 03/11/2026 — Fase 2 em implementação: conexão co-op UDP verificada entre dois processos reais, tela preta da build corrigida e dois pacotes visuais integrados como inimigos de rede iniciais; replicação de movimento ainda não provada.*
 
 ## 1. O jogo
 Survivors-like 3D em **co-op para 2 jogadores**, Host–Client por IP direto: mesma máquina em `127.0.0.1` ou LAN com o Host em `0.0.0.0`. O jogo está sendo **refeito sobre o 3D Game Kit** da Unity (Asset Store, 1.9.5, Unity 6.3 + URP), usando dele a arte, as fases (Level1, depois Level2), a Ellen e os inimigos (Chomper na horda; Spitter e Grenadier como escalada).
@@ -51,6 +51,8 @@ A prioridade é ter algo funcional e testado em rede com o mínimo de sistemas.
 - `wmctrl` **já está instalado** nesta máquina; `--reopen*` e capturas funcionam.
 
 **Validação do usuário:** single-player e preparação na máquina do Rodrigo avaliados e aprovados nesta conversa. O usuário autorizou encerrar a Fase 1 e iniciar a Fase 2. **Ainda não verificado:** movimento e animação replicados entre processos, o ensaio em WebSocket (TCP) e a partida entre duas máquinas da LAN. Há um warning de serialização `CompositionModifier` do Cinemachine 3.1.3; nenhum arquivo original foi alterado para suprimi-lo.
+
+**Atualização de 03/11/2026:** `Cyber Monsters 2` e `DungeonCharacters/Skeletons_demo` foram importados e adaptados sem editar os arquivos de origem. As cópias `CyberMonster` e `DungeonSkeleton` ficam em `_Project/Prefabs/Enemies`, são registradas no NGO e são geradas pelo servidor na primeira onda de `Level1_Coop`. A compilação da integração passou; o teste EditMode teve 20 de 22 casos aprovados em modo sem gráficos, com os dois casos restantes bloqueados por erro de Global Illumination sem dispositivo gráfico. A sessão Host–Client com esses inimigos ainda não foi observada.
 
 ## 3. Decisões tomadas
 | # | Decisão |

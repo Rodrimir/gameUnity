@@ -15,6 +15,8 @@ Em implementação. A Fase 1 foi encerrada por aprovação explícita do usuári
 - A build Linux de Development usa OpenGL Core, o backend já utilizado pelo Editor nesta máquina. O método de build restaura a seleção de APIs anterior do projeto em `finally`. Isso reduz o custo de variantes de shader no build de teste.
 - **Correção da tela preta na build (03/11/2026).** `GaussianBlurRenderFeature` do kit resolve o material por `Shader.Find("Hidden/Universal/GaussianBlur")`. Nenhum material referencia esse shader, então ele ficava fora do build: `Shader.Find` devolvia `null`, `new Material(null)` lançava `ArgumentNullException` e o Render Graph abortava o frame inteiro, a cada frame. A janela abria e nada era desenhado. O shader passou a constar em **Always Included Shaders** (`ProjectSettings/GraphicsSettings.asset`); nenhum arquivo do kit foi alterado.
 - **Licença no sandbox.** O launcher só copia a licença quando `.unity/config/unity3d/Unity/licenses` ainda não existe. A cópia tinha envelhecido e o build em `-batchmode` falhava com `No valid Unity Editor license found` (erro 404 de entitlements). Sincronizar a pasta a partir de `~/.config/unity3d/Unity` resolveu.
+- Os assets importados `Cyber Monsters 2` e `DungeonCharacters/Skeletons_demo` foram preservados como fonte e receberam cópias jogáveis em `Assets/_Project/Prefabs/Enemies/`. As cópias usam `NetworkObject`, `NetworkTransform` e `NetworkEnemy`; o servidor controla perseguição, ataque, vida e morte. A primeira onda de `Level1_Coop` contém uma cópia de cada tipo, e ambos são registrados no `CoopSession`.
+- O hitbox e o `Damageable` são garantidos pela ponte em runtime, porque os prefabs de origem são somente visuais e não devem receber componentes do kit diretamente.
 
 ## Verificação executada
 
@@ -23,6 +25,8 @@ Em implementação. A Fase 1 foi encerrada por aprovação explícita do usuári
 | Preparação das cópias | `Logs/Fase2-prepare.log` | Saída 0 |
 | Regras de aprovação/endereço/nomes, prefab/cena, ciclo Host e regressão single-player | `Logs/TestResults.xml`, execução de 03/11/2026 02:32 UTC | 20 testes passaram, 0 falhas |
 | Ciclo do Host no teste | `CoopTests.HostLoadsCoopAndReturnsToMenuOnShutdown` | Level1_Coop carregada, PlayerObject criado e retorno a CoopMenu após shutdown |
+| Compilação e preparação dos inimigos importados | `Logs/EnemySetup.log`, execução de 03/11/2026 06:50 UTC | Saída 0; dois prefabs gerados, registrados e referenciados pela cena |
+| Regressão EditMode após integração | `Logs/TestResults.xml`, execução de 03/11/2026 06:54 UTC | 20 de 22 passaram; 2 testes falharam apenas por `-nographics` não ter dispositivo para Global Illumination |
 
 ## Ensaio de rede entre processos — 03/11/2026 (máquina do Rodrigo)
 
